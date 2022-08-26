@@ -6,6 +6,7 @@ const c_pkg = std.build.Pkg{
 };
 
 const GLFW_BASE = "_external/glfw";
+const GLAD_BASE = "_external/glad";
 
 var allocator: std.mem.Allocator = undefined;
 var mode: std.builtin.Mode = undefined;
@@ -84,14 +85,17 @@ pub fn build(b: *std.build.Builder) void {
     exe.setTarget(target);
     exe.setBuildMode(mode);
     exe.addPackage(c_pkg);
+    exe.linkLibC();
+    // exe.linkLibCpp();
     // glfw
     exe.addIncludePath(GLFW_BASE ++ "/include");
-    exe.linkLibC();
-    exe.linkLibCpp();
     const lib_path = if (mode == .Debug) "build/src/Debug" else "build/src/Release";
     exe.addLibraryPath(lib_path);
     exe.linkSystemLibrary("glfw3dll");
     exe.linkSystemLibrary("OpenGL32");
+    // glad
+    exe.addIncludePath(GLAD_BASE ++ "/include");
+    exe.addCSourceFile(GLAD_BASE ++ "/src/glad.c", &.{});
     exe.install();
 
     const run_cmd = exe.run();
