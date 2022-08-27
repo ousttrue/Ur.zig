@@ -5,6 +5,12 @@ const c_pkg = std.build.Pkg{
     .source = .{ .path = "c.zig" },
 };
 
+const engine_pkg = std.build.Pkg{
+    .name = "engine",
+    .source = .{ .path = "engine/main.zig" },
+    .dependencies = &.{c_pkg},
+};
+
 const GLFW_BASE = "_external/glfw";
 const GLAD_BASE = "_external/glad";
 
@@ -80,37 +86,48 @@ pub fn build(b: *std.build.Builder) void {
     const cmake_step = b.step("cmake", "build glfw");
     cmake_step.makeFn = buildCmake;
 
-    const exe = b.addExecutable("Ur.zig", "src/main.zig");
-    exe.step.dependOn(cmake_step);
-    exe.setTarget(target);
-    exe.setBuildMode(mode);
-    exe.addPackage(c_pkg);
-    exe.linkLibC();
-    // exe.linkLibCpp();
-    // glfw
-    exe.addIncludePath(GLFW_BASE ++ "/include");
-    const lib_path = if (mode == .Debug) "build/src/Debug" else "build/src/Release";
-    exe.addLibraryPath(lib_path);
-    exe.linkSystemLibrary("glfw3dll");
-    exe.linkSystemLibrary("OpenGL32");
+    const dll = b.addSharedLibrary("Ur.zig", "engine/main.zig", .unversioned);
+    dll.step.dependOn(cmake_step);
+    dll.setTarget(target);
+    dll.setBuildMode(mode);
+    dll.addPackage(c_pkg);
+    dll.linkLibC();
+    dll.linkSystemLibrary("OpenGL32");
     // glad
-    exe.addIncludePath(GLAD_BASE ++ "/include");
-    exe.addCSourceFile(GLAD_BASE ++ "/src/glad.c", &.{});
-    exe.install();
+    dll.addIncludePath(GLAD_BASE ++ "/include");
+    dll.addCSourceFile(GLAD_BASE ++ "/src/glad.c", &.{});
+    dll.addIncludePath(GLFW_BASE ++ "/include");
+    dll.install();
 
-    const run_cmd = exe.run();
-    run_cmd.step.dependOn(b.getInstallStep());
-    if (b.args) |args| {
-        run_cmd.addArgs(args);
+    if (target.cpu_arch != std.Target.Cpu.Arch.wasm32) {
+        const exe = b.addExecutable("glfw", "src/main.zig");
+        exe.step.dependOn(&dll.step);
+        exe.addPackage(c_pkg);
+        exe.addPackage(engine_pkg);
+        // glfw
+        exe.addIncludePath(GLAD_BASE ++ "/include");
+        exe.addCSourceFile(GLAD_BASE ++ "/src/glad.c", &.{});
+        exe.addIncludePath(GLFW_BASE ++ "/include");
+        const lib_path = if (mode == .Debug) "build/src/Debug" else "build/src/Release";
+        exe.addLibraryPath(lib_path);
+        exe.linkSystemLibrary("glfw3dll");
+        exe.linkLibrary(dll);
+        exe.install();
+
+        const run_cmd = exe.run();
+        run_cmd.step.dependOn(b.getInstallStep());
+        if (b.args) |args| {
+            run_cmd.addArgs(args);
+        }
+
+        const run_step = b.step("run", "Run the app");
+        run_step.dependOn(&run_cmd.step);
     }
 
-    const run_step = b.step("run", "Run the app");
-    run_step.dependOn(&run_cmd.step);
-
-    const exe_tests = b.addTest("src/main.zig");
-    exe_tests.setTarget(target);
-    exe_tests.setBuildMode(mode);
+    const dll_tests = b.addTest("engine/main.zig");
+    dll_tests.setTarget(target);
+    dll_tests.setBuildMode(mode);
 
     const test_step = b.step("test", "Run unit tests");
-    test_step.dependOn(&exe_tests.step);
+    test_step.dependOn(&dll_tests.step);
 }
