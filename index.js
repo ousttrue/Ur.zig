@@ -105,7 +105,7 @@ var importObject = {
 };
 
 // get
-const response = await fetch('zig-out/lib/Ur.zig.wasm')
+const response = await fetch('zig-out/lib/Ur.wasm')
 // byte array
 const buffer = await response.arrayBuffer();
 // compile
