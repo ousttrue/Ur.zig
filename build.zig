@@ -8,7 +8,6 @@ const c_pkg = std.build.Pkg{
 const engine_pkg = std.build.Pkg{
     .name = "engine",
     .source = .{ .path = "engine/main.zig" },
-    .dependencies = &.{c_pkg},
 };
 
 const GLFW_BASE = "_external/glfw";
@@ -83,30 +82,29 @@ pub fn build(b: *std.build.Builder) void {
     // between Debug, ReleaseSafe, ReleaseFast, and ReleaseSmall.
     mode = b.standardReleaseOptions();
 
-    const cmake_step = b.step("cmake", "build glfw");
-    cmake_step.makeFn = buildCmake;
-
     const dll = b.addSharedLibrary("Ur.zig", "engine/main.zig", .unversioned);
-    dll.step.dependOn(cmake_step);
     dll.setTarget(target);
     dll.setBuildMode(mode);
-    dll.addPackage(c_pkg);
     dll.linkLibC();
     dll.linkSystemLibrary("OpenGL32");
-    // glad
+    // inculde
     dll.addIncludePath(GLAD_BASE ++ "/include");
-    dll.addCSourceFile(GLAD_BASE ++ "/src/glad.c", &.{});
     dll.addIncludePath(GLFW_BASE ++ "/include");
     dll.install();
 
     if (target.cpu_arch != std.Target.Cpu.Arch.wasm32) {
+        const cmake_step = b.step("cmake", "build glfw");
+        cmake_step.makeFn = buildCmake;
+
         const exe = b.addExecutable("glfw", "src/main.zig");
+        exe.step.dependOn(cmake_step);
         exe.step.dependOn(&dll.step);
         exe.addPackage(c_pkg);
         exe.addPackage(engine_pkg);
-        // glfw
+        // glad
         exe.addIncludePath(GLAD_BASE ++ "/include");
         exe.addCSourceFile(GLAD_BASE ++ "/src/glad.c", &.{});
+        // glfw
         exe.addIncludePath(GLFW_BASE ++ "/include");
         const lib_path = if (mode == .Debug) "build/src/Debug" else "build/src/Release";
         exe.addLibraryPath(lib_path);

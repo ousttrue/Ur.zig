@@ -18,7 +18,8 @@ pub fn main() anyerror!void {
     _ = c.gladLoadGLLoader(@ptrCast(c.GLADloadproc, c.glfwGetProcAddress));
     c.glfwSwapInterval(1);
 
-    var ur = engine.Ur.init();
+    const functions = engine.gl.GL.from(c);
+    var ur = engine.Ur.init(functions);
 
     // Loop until the user closes the window
     while (c.glfwWindowShouldClose(window) == 0) {
