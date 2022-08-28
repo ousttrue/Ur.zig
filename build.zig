@@ -82,11 +82,13 @@ pub fn build(b: *std.build.Builder) void {
     // between Debug, ReleaseSafe, ReleaseFast, and ReleaseSmall.
     mode = b.standardReleaseOptions();
 
-    const dll = b.addSharedLibrary("Ur.zig", "engine/main.zig", .unversioned);
+    const dll = b.addSharedLibrary("Ur", "engine/main.zig", .unversioned);
     dll.setTarget(target);
     dll.setBuildMode(mode);
     dll.linkLibC();
-    dll.linkSystemLibrary("OpenGL32");
+    if (target.os_tag == std.Target.Os.Tag.windows) {
+        dll.linkSystemLibrary("OpenGL32");
+    }
 
     if (target.cpu_arch != std.Target.Cpu.Arch.wasm32) {
         // glad
@@ -103,9 +105,16 @@ pub fn build(b: *std.build.Builder) void {
         exe.addPackage(c_pkg);
         // glfw
         exe.addIncludePath(GLFW_BASE ++ "/include");
-        const lib_path = if (mode == .Debug) "build/src/Debug" else "build/src/Release";
-        exe.addLibraryPath(lib_path);
-        exe.linkSystemLibrary("glfw3dll");
+
+        if (target.os_tag == std.Target.Os.Tag.windows) {
+            const lib_path = if (mode == .Debug) "build/src/Debug" else "build/src/Release";
+            exe.addLibraryPath(lib_path);
+            exe.linkSystemLibrary("glfw3dll");
+        } else {
+            const lib_path = "build/src";
+            exe.addLibraryPath(lib_path);
+            exe.linkSystemLibrary("glfw");
+        }
         exe.linkLibrary(dll);
         exe.install();
 
