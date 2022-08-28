@@ -27,6 +27,12 @@ const glCreateBuffer = () => {
     return glBuffers.length - 1;
 }
 
+const readCharStr = (buffer, ptr, len) => {
+    const array = new Uint8Array(buffer, ptr, len)
+    const decoder = new TextDecoder()
+    return decoder.decode(array)
+}
+
 var importObject = {
     imports: {
         imported_func: function (arg) {
@@ -46,9 +52,55 @@ var importObject = {
         },
         bindBuffer: (type, bufferId) => gl.bindBuffer(type, glBuffers[bufferId]),
         bufferData: (type, count, dataPtr, drawType) => {
-            const floats = new Float32Array(memory.buffer, dataPtr, count);
+            const floats = new Uint8Array(memory.buffer, Number(dataPtr), Number(count));
             gl.bufferData(type, floats, drawType);
         },
+        createShader: (shaderType) => {
+            glShaders.push(gl.createShader(shaderType));
+            return glShaders.length - 1;
+        },
+        shaderSource: (shader, string, length) => {
+            const text = readCharStr(memory.buffer, string, length);
+            gl.shaderSource(glShaders[shader], text);
+        },
+        compileShader: (shader) => {
+            gl.compileShader(glShaders[shader]);
+            const success = gl.getShaderParameter(glShaders[shader], gl.COMPILE_STATUS);
+            if (!success) {
+                console.error(gl.getShaderInfoLog(glShaders[shader]));
+            }
+        },
+        createProgram: () => {
+            glPrograms.push(gl.createProgram());
+            return glPrograms.length - 1;
+        },
+        attachShader: (program, shader) => gl.attachShader(glPrograms[program], glShaders[shader]),
+        linkProgram: (program) => {
+            gl.linkProgram(glPrograms[program]);
+            const success = gl.getProgramParameter(glPrograms[program], gl.LINK_STATUS);
+            if (!success) {
+                console.error(gl.getProgramInfoLog(glPrograms[program]));
+            }
+        },
+        getUniformLocation: (program, name, length) => {
+            const text = readCharStr(memory.buffer, name, length);
+            glUniformLocations.push(gl.getUniformLocation(glPrograms[program], text));
+            return glUniformLocations.length - 1;
+        },
+        getAttribLocation: (program, name, length) => {
+            const text = readCharStr(memory.buffer, name, length);
+            return gl.getAttribLocation(glPrograms[program], text);
+        },
+        enableVertexAttribArray: (index) => gl.enableVertexAttribArray(index),
+        vertexAttribPointer: (index, size, type, normalized, stride, offset) => {
+            gl.vertexAttribPointer(index, size, type, normalized, stride, Number(offset));
+        },
+        useProgram: (program) => gl.useProgram(glPrograms[program]),
+        uniformMatrix4fv: (location, count, transpose, value) => {
+            const values = new Float32Array(memory.buffer, value, 16 * count);
+            gl.uniformMatrix4fv(glUniformLocations[location], count, values, transpose);
+        },
+        drawArrays: (mode, first, count) => gl.drawArrays(mode, first, count),
     },
 };
 

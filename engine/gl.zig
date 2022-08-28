@@ -1,7 +1,11 @@
 // Types
+pub const GLboolean = u8;
 pub const GLuint = c_uint;
 pub const GLenum = c_uint;
+pub const GLbitfield = c_uint;
 pub const GLint = c_int;
+pub const GLsizei = c_int;
+pub const GLsizeiptr = c_longlong;
 pub const GLfloat = f32;
 
 // Identifier constants pulled from WebGLRenderingContext
@@ -38,10 +42,24 @@ pub const GL_CLAMP_TO_EDGE = 33071;
 pub const GL_TEXTURE_WRAP_T = 10243;
 pub const GL_PACK_ALIGNMENT = 3333;
 
-// inject from wasm importObject or OpenGL32/glad
-pub extern fn viewport(_: c_int, _: c_int, _: c_int, _: c_int) void;
-pub extern fn clear(_: c_uint) void;
-pub extern fn clearColor(_: f32, _: f32, _: f32, _: f32) void;
-pub extern fn genBuffers(_: c_uint, _: *c_uint) void;
-pub extern fn bindBuffer(target: c_uint, buffer: c_uint) void;
-pub extern fn bufferData(target: c_uint, size: c_uint, data: *const anyopaque, usage: c_uint) void;
+// [wasm] inject WebGL when instanciate by importObject
+// [desktop] inject OpenGL when link with glad_placeholders.c
+pub extern fn viewport(x: GLint, y: GLint, width: GLsizei, height: GLsizei) void;
+pub extern fn clearColor(red: GLfloat, green: GLfloat, blue: GLfloat, alpha: GLfloat) void;
+pub extern fn clear(mask: GLbitfield) void;
+pub extern fn genBuffers(n: GLsizei, buffers: *GLuint) void;
+pub extern fn bindBuffer(target: GLenum, buffer: GLuint) void;
+pub extern fn bufferData(target: GLenum, size: GLsizeiptr, data: *const anyopaque, usage: GLenum) void;
+pub extern fn createShader(shaderType: GLenum) c_uint;
+pub extern fn shaderSource(shader: GLuint, string: *const u8, len: GLuint) void;
+pub extern fn compileShader(shader: GLuint) void;
+pub extern fn createProgram() GLuint;
+pub extern fn attachShader(program: GLuint, shader: GLuint) void;
+pub extern fn linkProgram(program: GLuint) void;
+pub extern fn getUniformLocation(program: GLuint, name: [*:0]const u8, len: GLuint) GLuint;
+pub extern fn getAttribLocation(program: GLuint, name: [*:0]const u8, len: GLuint) GLuint;
+pub extern fn enableVertexAttribArray(index: GLuint) void;
+pub extern fn vertexAttribPointer(index: GLuint, size: GLint, type: GLenum, normalized: GLboolean, stride: GLsizei, offset: GLsizeiptr) void;
+pub extern fn useProgram(program: GLuint) void;
+pub extern fn uniformMatrix4fv(location: GLint, count: GLsizei, transpose: GLboolean, value: *const GLfloat) void;
+pub extern fn drawArrays(mode: GLenum, first: GLint, count: GLsizei) void;
