@@ -87,12 +87,16 @@ pub fn build(b: *std.build.Builder) void {
     dll.setBuildMode(mode);
     dll.linkLibC();
     dll.linkSystemLibrary("OpenGL32");
-    // inculde
-    dll.addIncludePath(GLAD_BASE ++ "/include");
-    dll.addIncludePath(GLFW_BASE ++ "/include");
-    dll.install();
+    // // inculde
+    // dll.addIncludePath(GLAD_BASE ++ "/include");
+    // dll.addIncludePath(GLFW_BASE ++ "/include");
 
     if (target.cpu_arch != std.Target.Cpu.Arch.wasm32) {
+        // glad
+        dll.addIncludePath(GLAD_BASE ++ "/include");
+        dll.addCSourceFile(GLAD_BASE ++ "/src/glad.c", &.{});
+        dll.addCSourceFile("engine/glad_placeholders.c", &.{});
+
         const cmake_step = b.step("cmake", "build glfw");
         cmake_step.makeFn = buildCmake;
 
@@ -100,10 +104,7 @@ pub fn build(b: *std.build.Builder) void {
         exe.step.dependOn(cmake_step);
         exe.step.dependOn(&dll.step);
         exe.addPackage(c_pkg);
-        exe.addPackage(engine_pkg);
-        // glad
-        exe.addIncludePath(GLAD_BASE ++ "/include");
-        exe.addCSourceFile(GLAD_BASE ++ "/src/glad.c", &.{});
+        // exe.addPackage(engine_pkg);
         // glfw
         exe.addIncludePath(GLFW_BASE ++ "/include");
         const lib_path = if (mode == .Debug) "build/src/Debug" else "build/src/Release";
@@ -121,6 +122,7 @@ pub fn build(b: *std.build.Builder) void {
         const run_step = b.step("run", "Run the app");
         run_step.dependOn(&run_cmd.step);
     }
+    dll.install();
 
     const dll_tests = b.addTest("engine/main.zig");
     dll_tests.setTarget(target);

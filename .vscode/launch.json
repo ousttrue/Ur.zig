@@ -15,7 +15,7 @@
             "environment": [
                 {
                     "name": "PATH",
-                    "value": "${workspaceFolder}\\build\\src\\Debug;${env:PATH}"
+                    "value": "${workspaceFolder}\\zig-out\\lib;${workspaceFolder}\\build\\src\\Debug;${env:PATH}"
                 }
             ],
             "console": "integratedTerminal"

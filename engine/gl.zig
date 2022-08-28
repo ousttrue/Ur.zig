@@ -1,6 +1,3 @@
-const std = @import("std");
-const logger = std.log.scoped(.gl);
-
 // Types
 pub const GLuint = c_uint;
 pub const GLenum = c_uint;
@@ -41,67 +38,10 @@ pub const GL_CLAMP_TO_EDGE = 33071;
 pub const GL_TEXTURE_WRAP_T = 10243;
 pub const GL_PACK_ALIGNMENT = 3333;
 
-pub const GL = struct {
-    const Self = @This();
-
-    glViewport: fn (_: c_int, _: c_int, _: c_int, _: c_int) callconv(.Inline) void = undefined,
-    // glClearColor: fn (_: f32, _: f32, _: f32, _: f32) callconv(.Inline) void = undefined,
-    // glEnable: fn (_: c_uint) callconv(.Inline) void = undefined,
-    // glDepthFunc: fn (_: c_uint) callconv(.Inline) void = undefined,
-    // glBlendFunc: fn (_: c_uint, _: c_uint) callconv(.Inline) void = undefined,
-    glClear: fn (_: c_uint) callconv(.Inline) void = undefined,
-    // glGetAttribLocation: fn (_: c_uint, _: [*:0]const u8) callconv(.Inline) c_int = undefined,
-    // glGetUniformLocation: fn (_: c_uint, _: [*:0]const u8) callconv(.Inline) c_int = undefined,
-    // glUniform4f: fn (_: c_int, _: f32, _: f32, _: f32, _: f32) callconv(.Inline) void = undefined,
-    // glUniform1i: fn (_: c_int, _: c_int) callconv(.Inline) void = undefined,
-    // glUniform1f: fn (_: c_int, _: f32) callconv(.Inline) void = undefined,
-    // glUniformMatrix4fv: fn (_: c_int, _: c_int, _: u8, _: [*]const f32) callconv(.Inline) void = undefined,
-    // glCreateVertexArray: fn () callconv(.Inline) c_uint = undefined,
-    // glGenVertexArrays: fn (_: c_int, [*c]c_uint) callconv(.Inline) void = undefined,
-    // glDeleteVertexArrays: fn (_: c_int, [*c]c_uint) callconv(.Inline) void = undefined,
-    // glBindVertexArray: fn (_: c_uint) callconv(.Inline) void = undefined,
-    // glCreateBuffer: fn () callconv(.Inline) c_uint = undefined,
-    // glGenBuffers: fn (_: c_int, _: [*c]c_uint) callconv(.Inline) void = undefined,
-    // glDeleteBuffers: fn (_: c_int, _: [*c]c_uint) callconv(.Inline) void = undefined,
-    // glDeleteBuffer: fn (_: c_uint) callconv(.Inline) void = undefined,
-    // glBindBuffer: fn (_: c_uint, _: c_uint) callconv(.Inline) void = undefined,
-    // glBufferData: fn (_: c_uint, _: c_uint, _: [*c]const f32, _: c_uint) callconv(.Inline) void = undefined,
-    // glPixelStorei: fn (_: c_uint, _: c_int) callconv(.Inline) void = undefined,
-    // glAttachShader: fn (_: c_uint, _: c_uint) callconv(.Inline) void = undefined,
-    // glDetachShader: fn (_: c_uint, _: c_uint) callconv(.Inline) void = undefined,
-    // glDeleteShader: fn (_: c_uint) callconv(.Inline) void = undefined,
-    // glUseProgram: fn (_: c_uint) callconv(.Inline) void = undefined,
-    // glDeleteProgram: fn (_: c_uint) callconv(.Inline) void = undefined,
-    // glEnableVertexAttribArray: fn (_: c_uint) callconv(.Inline) void = undefined,
-    // glVertexAttribPointer: fn (_: c_uint, _: c_uint, _: c_uint, _: c_uint, _: c_uint, _: ?*const anyopaque) callconv(.Inline) void = undefined,
-    // glDrawArrays: fn (_: c_uint, _: c_uint, _: c_uint) callconv(.Inline) void = undefined,
-    // glCreateTexture: fn () callconv(.Inline) c_uint = undefined,
-    // glGenTextures: fn (_: c_int, _: [*c]c_uint) callconv(.Inline) void = undefined,
-    // glDeleteTextures: fn (_: c_int, _: [*c]const c_uint) callconv(.Inline) void = undefined,
-    // glDeleteTexture: fn (_: c_uint) callconv(.Inline) void = undefined,
-    // glBindTexture: fn (_: c_uint, _: c_uint) callconv(.Inline) void = undefined,
-    // glTexImage2D: fn (_: c_uint, _: c_uint, _: c_uint, _: c_int, _: c_int, _: c_uint, _: c_uint, _: c_uint, _: [*]const u8, _: c_uint) callconv(.Inline) void = undefined,
-    // glTexParameteri: fn (_: c_uint, _: c_uint, _: c_uint) callconv(.Inline) void = undefined,
-    // glActiveTexture: fn (_: c_uint) callconv(.Inline) void = undefined,
-    // glGetError: fn () callconv(.Inline) c_int = undefined,
-    // glCreateShader: fn (shaderType: c_uint) callconv(.Inline) c_uint = undefined,
-    // glShaderSource: fn (shader: c_uint, count: c_uint, string: *const [*]const u8, length: [*c]const c_int) callconv(.Inline) void = undefined,
-    // glCompileShader: fn (shader: c_uint) callconv(.Inline) void = undefined,
-    // glCreateProgram: fn () callconv(.Inline) c_uint = undefined,
-    // glLinkProgram: fn (program: c_uint) callconv(.Inline) void = undefined,
-
-    pub fn from(t: anytype) Self {
-        var self = Self{};
-
-        inline for (@typeInfo(Self).Struct.fields) |field| {
-            if (@hasDecl(t, field.name)) {
-                logger.debug("field: {s}", .{field.name});
-                @field(self, field.name) = (&@field(t, field.name)).*;
-            } else {
-                logger.warn("no field: {s}", .{field.name});
-            }
-        }
-
-        return self;
-    }
-};
+// inject from wasm importObject or OpenGL32/glad
+pub extern fn viewport(_: c_int, _: c_int, _: c_int, _: c_int) void;
+pub extern fn clear(_: c_uint) void;
+pub extern fn clearColor(_: f32, _: f32, _: f32, _: f32) void;
+pub extern fn genBuffers(_: c_uint, _: *c_uint) void;
+pub extern fn bindBuffer(target: c_uint, buffer: c_uint) void;
+pub extern fn bufferData(target: c_uint, size: c_uint, data: *const anyopaque, usage: c_uint) void;

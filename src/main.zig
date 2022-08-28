@@ -1,6 +1,6 @@
 const std = @import("std");
 const c = @import("c");
-const engine = @import("engine");
+const engine = @import("engine_extern.zig");
 
 pub fn main() anyerror!void {
 
@@ -15,11 +15,9 @@ pub fn main() anyerror!void {
 
     // Make the window's context current
     c.glfwMakeContextCurrent(window);
-    _ = c.gladLoadGLLoader(@ptrCast(c.GLADloadproc, c.glfwGetProcAddress));
     c.glfwSwapInterval(1);
 
-    const functions = engine.gl.GL.from(c);
-    var ur = engine.Ur.init(functions);
+    engine.loadproc(c.glfwGetProcAddress);
 
     // Loop until the user closes the window
     while (c.glfwWindowShouldClose(window) == 0) {
@@ -29,7 +27,7 @@ pub fn main() anyerror!void {
         // ratio = width / (float) height;
 
         // Render here
-        ur.render(width, height);
+        engine.render(width, height);
 
         // Swap front and back buffers
         c.glfwSwapBuffers(window);
