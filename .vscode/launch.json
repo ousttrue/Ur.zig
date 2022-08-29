@@ -49,5 +49,13 @@
                 }
             ]
         },
-    ]
+        {
+            "name": "generate ImGui wrapper",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/scripts/code_generator.py",
+            "console": "integratedTerminal",
+            "justMyCode": true
+        },
+   ]
 }

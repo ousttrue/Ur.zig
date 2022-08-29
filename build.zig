@@ -5,9 +5,12 @@ const c_pkg = std.build.Pkg{
     .source = .{ .path = "c.zig" },
 };
 
+const imgui_pkg = std.build.Pkg{ .name = "imgui", .source = .{ .path = "pkgs/imgui/src/main.zig" } };
+
 const engine_pkg = std.build.Pkg{
     .name = "engine",
     .source = .{ .path = "engine/main.zig" },
+    .dependencies = &.{imgui_pkg},
 };
 
 const GLFW_BASE = "_external/glfw";
@@ -69,6 +72,19 @@ fn buildCmake(step: *std.build.Step) !void {
     }
 }
 
+const IMGUI_BASE = "_external/imgui";
+const IMGUI_SOURCES = [_][]const u8{
+    IMGUI_BASE ++ "/imgui.cpp",
+    IMGUI_BASE ++ "/imgui_draw.cpp",
+    IMGUI_BASE ++ "/imgui_widgets.cpp",
+    IMGUI_BASE ++ "/imgui_tables.cpp",
+    IMGUI_BASE ++ "/imgui_demo.cpp",
+    // IMGUI_BASE ++ "/backends/imgui_impl_glfw.cpp",
+    // IMGUI_BASE ++ "/backends/imgui_impl_opengl3.cpp",
+    "pkgs/imgui/src/imvec2_byvalue.cpp",
+    "pkgs/imgui/src/internal.cpp",
+};
+
 pub fn build(b: *std.build.Builder) void {
     allocator = std.heap.page_allocator;
 
@@ -88,6 +104,14 @@ pub fn build(b: *std.build.Builder) void {
     dll.linkLibC();
     if (target.os_tag == std.Target.Os.Tag.windows) {
         dll.linkSystemLibrary("OpenGL32");
+    }
+    // imgui
+    dll.linkLibCpp();
+    dll.addPackage(imgui_pkg);
+    dll.addIncludePath(IMGUI_BASE);
+    for(IMGUI_SOURCES)|s|
+    {
+        dll.addCSourceFile(s, &.{});
     }
 
     if (target.cpu_arch != std.Target.Cpu.Arch.wasm32) {

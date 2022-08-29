@@ -1,6 +1,7 @@
 const std = @import("std");
 const builtin = @import("builtin");
 const gl = @import("./gl.zig");
+const imgui = @import("imgui");
 const logger = std.log.scoped(.Ur);
 
 fn getShaderType(shader_type: gl.GLenum) []const u8 {
@@ -82,6 +83,10 @@ pub fn init() Self {
     gl.vertexAttribPointer(self.vpos_location, 2, gl.GL_FLOAT, gl.GL_FALSE, @sizeOf(Vertex), 0);
     gl.enableVertexAttribArray(self.vcol_location);
     gl.vertexAttribPointer(self.vcol_location, 3, gl.GL_FLOAT, gl.GL_FALSE, @sizeOf(Vertex), @sizeOf(f32) * 2);
+
+    _ = imgui.CreateContext(.{});
+    var io = imgui.GetIO();
+    _ = io;
 
     return self;
 }
