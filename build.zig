@@ -106,7 +106,7 @@ pub fn build(b: *std.build.Builder) void {
         // glfw
         exe.addIncludePath(GLFW_BASE ++ "/include");
 
-        if (target.os_tag == std.Target.Os.Tag.windows) {
+        if (target.isWindows()) {
             const lib_path = if (mode == .Debug) "build/src/Debug" else "build/src/Release";
             exe.addLibraryPath(lib_path);
             exe.linkSystemLibrary("glfw3dll");
