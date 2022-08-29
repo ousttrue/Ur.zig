@@ -15,9 +15,11 @@ pub export fn loadproc(ptr: *const anyopaque) void {
 var ur: ?Ur = null;
 pub export fn render(width: c_int, height: c_int) void {
     if (ur == null) {
-        ur = Ur.init();
+        ur = Ur.init(std.heap.page_allocator) catch {
+            unreachable;
+        };
     }
-    if (ur) |r| {
+    if (ur) |*r| {
         r.render(width, height);
     }
 }

@@ -43,6 +43,13 @@ pub const GL_TEXTURE_WRAP_T = 10243;
 pub const GL_PACK_ALIGNMENT = 3333;
 
 pub const GL_COMPILE_STATUS = 0x8B81;
+pub const GL_TEXTURE_BINDING_2D = 0x8069;
+pub const GL_ARRAY_BUFFER_BINDING = 0x8894;
+pub const GL_VERTEX_ARRAY_BINDING = 0x85B5;
+pub const GL_INFO_LOG_LENGTH = 0x8B84;
+pub const GL_LINK_STATUS = 0x8B82;
+pub const GL_LINEAR = 0x2601;
+pub const GL_UNPACK_ROW_LENGTH = 0x0CF2;
 
 // [wasm] inject WebGL when instanciate by importObject
 // [desktop] inject OpenGL when link with glad_placeholders.c
@@ -54,17 +61,26 @@ pub extern fn bindBuffer(target: GLenum, buffer: GLuint) void;
 pub extern fn bufferData(target: GLenum, size: GLsizeiptr, data: *const anyopaque, usage: GLenum) void;
 pub extern fn createShader(shaderType: GLenum) c_uint;
 pub extern fn deleteShader(shader: GLuint) void;
-pub extern fn shaderSource(shader: GLuint, string: *const u8, len: GLuint) void;
+pub extern fn shaderSource(shader: GLuint, count: GLuint, string: *const [*:0]const u8) void;
 pub extern fn compileShader(shader: GLuint) void;
 pub extern fn getShaderiv(shader: GLuint, pname: GLenum, params: *GLint) void;
-pub extern fn getShaderInfoLog(shader: GLuint, maxLength: GLsizei, length: *GLsizei, infoLog: *u8) void;
+pub extern fn getShaderInfoLog(shader: GLuint, maxLength: GLsizei, length: ?*GLsizei, infoLog: *u8) void;
 pub extern fn createProgram() GLuint;
 pub extern fn attachShader(program: GLuint, shader: GLuint) void;
+pub extern fn detachShader(program: GLuint, shader: GLuint) void;
 pub extern fn linkProgram(program: GLuint) void;
-pub extern fn getUniformLocation(program: GLuint, name: [*:0]const u8, len: GLuint) GLuint;
-pub extern fn getAttribLocation(program: GLuint, name: [*:0]const u8, len: GLuint) GLuint;
+pub extern fn getProgramiv(program: GLuint, pname: GLenum, params: *GLint) void;
+pub extern fn getProgramInfoLog(program: GLuint, maxLength: GLsizei, length: ?*GLsizei, infoLog: *u8) void;
+pub extern fn getUniformLocation(program: GLuint, name: [*:0]const u8) GLuint;
+pub extern fn getAttribLocation(program: GLuint, name: [*:0]const u8) GLuint;
 pub extern fn enableVertexAttribArray(index: GLuint) void;
 pub extern fn vertexAttribPointer(index: GLuint, size: GLint, type: GLenum, normalized: GLboolean, stride: GLsizei, offset: GLsizeiptr) void;
 pub extern fn useProgram(program: GLuint) void;
 pub extern fn uniformMatrix4fv(location: GLint, count: GLsizei, transpose: GLboolean, value: *const GLfloat) void;
 pub extern fn drawArrays(mode: GLenum, first: GLint, count: GLsizei) void;
+pub extern fn getIntegerv(pname: GLenum, data: *GLint) void;
+pub extern fn bindTexture(target: GLenum, texture: GLuint) void;
+pub extern fn bindVertexArray(array: GLuint) void;
+pub extern fn genTextures(n: GLsizei, textures: *GLuint) void;
+pub extern fn texParameteri(target: GLenum, pname: GLenum, param: GLint) void;
+pub extern fn pixelStorei(pname: GLenum, param: GLint) void;

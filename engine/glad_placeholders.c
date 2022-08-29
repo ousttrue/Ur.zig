@@ -27,8 +27,8 @@ GLuint createShader(GLenum shaderType) {
 
 void deleteShader(GLuint shader) { glad_glDeleteShader(shader); }
 
-void shaderSource(GLuint shader, const GLchar *string, GLuint length) {
-  glad_glShaderSource(shader, 1, &string, &length);
+void shaderSource(GLuint shader, GLuint count, const GLchar *const *string) {
+  glad_glShaderSource(shader, count, string, 0);
 }
 
 void compileShader(GLuint shader) { glad_glCompileShader(shader); }
@@ -48,13 +48,26 @@ void attachShader(GLuint program, GLuint shader) {
   glad_glAttachShader(program, shader);
 }
 
+void detachShader(GLuint program, GLuint shader) {
+  glad_glAttachShader(program, shader);
+}
+
 void linkProgram(GLuint program) { glad_glLinkProgram(program); }
 
-GLint getUniformLocation(GLuint program, const GLchar *name, GLuint len) {
+void getProgramiv(GLuint program, GLenum pname, GLint *params) {
+  glad_glGetProgramiv(program, pname, params);
+}
+
+void getProgramInfoLog(GLuint program, GLsizei maxLength, GLsizei *length,
+                       GLchar *infoLog) {
+  glad_glGetProgramInfoLog(program, maxLength, length, infoLog);
+}
+
+GLint getUniformLocation(GLuint program, const GLchar *name) {
   return glad_glGetUniformLocation(program, name);
 }
 
-GLint getAttribLocation(GLuint program, const GLchar *name, GLuint len) {
+GLint getAttribLocation(GLuint program, const GLchar *name) {
   return glad_glGetAttribLocation(program, name);
 }
 
@@ -77,4 +90,24 @@ void uniformMatrix4fv(GLint location, GLsizei count, GLboolean transpose,
 
 void drawArrays(GLenum mode, GLint first, GLsizei count) {
   glad_glDrawArrays(mode, first, count);
+}
+
+void getIntegerv(GLenum pname, GLint *data) { glad_glGetIntegerv(pname, data); }
+
+void bindTexture(GLenum target, GLuint texture) {
+  glad_glBindTexture(target, texture);
+}
+
+void bindVertexArray(GLuint array) { glad_glBindVertexArray(array); }
+
+void genTextures(GLsizei n, GLuint *textures) {
+  glad_glGenTextures(n, textures);
+}
+
+void texParameteri(GLenum target, GLenum pname, GLint param) {
+  glad_glTexParameteri(target, pname, param);
+}
+
+void pixelStorei(GLenum pname, GLint param) {
+  glad_glPixelStorei(pname, param);
 }
