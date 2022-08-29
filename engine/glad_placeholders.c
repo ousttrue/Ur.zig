@@ -1,5 +1,7 @@
 #include <glad/glad.h>
 
+const GLubyte *getString(GLenum name) { return glad_glGetString(name); }
+
 void viewport(GLint x, GLint y, GLsizei width, GLsizei height) {
   glViewport(x, y, width, height);
 }

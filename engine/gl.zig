@@ -50,9 +50,13 @@ pub const GL_INFO_LOG_LENGTH = 0x8B84;
 pub const GL_LINK_STATUS = 0x8B82;
 pub const GL_LINEAR = 0x2601;
 pub const GL_UNPACK_ROW_LENGTH = 0x0CF2;
+pub const GL_VENDOR = 0x1F00;
+pub const GL_RENDERER = 0x1F01;
+pub const GL_VERSION = 0x1F02;
 
 // [wasm] inject WebGL when instanciate by importObject
 // [desktop] inject OpenGL when link with glad_placeholders.c
+pub extern fn getString(name: GLenum) [*:0]const u8;
 pub extern fn viewport(x: GLint, y: GLint, width: GLsizei, height: GLsizei) void;
 pub extern fn clearColor(red: GLfloat, green: GLfloat, blue: GLfloat, alpha: GLfloat) void;
 pub extern fn clear(mask: GLbitfield) void;

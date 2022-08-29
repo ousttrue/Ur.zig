@@ -20,6 +20,8 @@ pub export fn render(width: c_int, height: c_int) void {
         };
     }
     if (ur) |*r| {
-        r.render(width, height);
+        r.render(width, height) catch {
+            unreachable;
+        };
     }
 }

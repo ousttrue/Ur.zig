@@ -12,7 +12,7 @@ const Data = struct {
     // Extracted at runtime using GL_MAJOR_VERSION, GL_MINOR_VERSION queries (e.g. 320 for GL 3.2)
     GlVersion: gl.GLuint = 0,
     // Specified by user or detected based on compile time GL settings.
-    GlslVersionString: [:0]u8 = "",
+    GlslVersionString: [:0]const u8,
     FontTexture: gl.GLuint = 0,
     ShaderHandle: gl.GLuint = 0,
     // Uniforms location
@@ -29,10 +29,11 @@ const Data = struct {
     HasClipOrigin: bool = false,
     UseBufferSubData: bool = false,
 
-    fn new(allocator: std.mem.Allocator) !*Self {
+    fn new(allocator: std.mem.Allocator, GlslVersionString: [:0]const u8) !*Self {
         var self = try allocator.create(Self);
         self.* = Self{
             .allocator = allocator,
+            .GlslVersionString = GlslVersionString,
         };
         return self;
     }
@@ -53,10 +54,13 @@ const Data = struct {
     }
 
     // If you get an error please report on github. You may try different GL context version or GLSL version. See GL<>GLSL version table at the top of this file.
-    fn checkShader(self: Self, handle: gl.GLuint, desc: []const u8) !bool {
+    fn checkShader(self: Self, handle: gl.GLuint, desc: []const u8) !void {
         var status: gl.GLint = 0;
-        var log_length: gl.GLint = 0;
         gl.getShaderiv(handle, gl.GL_COMPILE_STATUS, &status);
+        if (status == gl.GL_TRUE) {
+            return;
+        }
+        var log_length: gl.GLint = 0;
         gl.getShaderiv(handle, gl.GL_INFO_LOG_LENGTH, &log_length);
         if (status == gl.GL_FALSE) {
             logger.err("ERROR: ImGui_ImplOpenGL3_CreateDeviceObjects: failed to compile {s}! With GLSL: {s}", .{ desc, self.GlslVersionString });
@@ -67,14 +71,17 @@ const Data = struct {
             gl.getShaderInfoLog(handle, log_length, null, &buf[0]);
             logger.err("{s}", .{buf});
         }
-        return status == gl.GL_TRUE;
+        return error.compileError;
     }
 
     // If you get an error please report on GitHub. You may try different GL context version or GLSL version.
-    fn checkProgram(self: Self, handle: gl.GLuint, desc: []const u8) !bool {
+    fn checkProgram(self: Self, handle: gl.GLuint, desc: []const u8) !void {
         var status: gl.GLint = 0;
-        var log_length: gl.GLint = 0;
         gl.getProgramiv(handle, gl.GL_LINK_STATUS, &status);
+        if (status == gl.GL_TRUE) {
+            return;
+        }
+        var log_length: gl.GLint = 0;
         gl.getProgramiv(handle, gl.GL_INFO_LOG_LENGTH, &log_length);
         if (status == gl.GL_FALSE) {
             logger.err("ERROR: ImGui_ImplOpenGL3_CreateDeviceObjects: failed to link {s}! With GLSL {s}", .{ desc, self.GlslVersionString });
@@ -85,7 +92,7 @@ const Data = struct {
             gl.getProgramInfoLog(handle, log_length, null, &buf[0]);
             logger.err("{s}", .{buf});
         }
-        return status == gl.GL_TRUE;
+        return error.programError;
     }
 
     fn createFontsTexture(self: *Self) bool {
@@ -123,8 +130,7 @@ const Data = struct {
         return true;
     }
 
-    fn createDeviceObjects(self: *Self) !bool {
-        _ = self;
+    fn createDeviceObjects(self: *Self) !void {
         // Backup GL state
         var last_texture: gl.GLint = undefined;
         gl.getIntegerv(gl.GL_TEXTURE_BINDING_2D, &last_texture);
@@ -135,7 +141,7 @@ const Data = struct {
         gl.getIntegerv(gl.GL_VERTEX_ARRAY_BINDING, &last_vertex_array);
 
         // Parse GLSL version string
-        var glsl_version: c_int = 410;
+        var glsl_version: c_int = 130;
         // c.sscanf(&bd.GlslVersionString[0], "#version %d", &glsl_version);
         const vertex_shader_glsl_120: [:0]const u8 = @embedFile("./imgui_120.vs");
         const vertex_shader_glsl_130: [:0]const u8 = @embedFile("./imgui_130.vs");
@@ -164,30 +170,24 @@ const Data = struct {
         }
 
         // Create shaders
-        const vertex_shader_with_version: [2][*:0]const u8 = .{ self.GlslVersionString, vertex_shader };
+        const vertex_shader_with_version = [_][*:0]const u8{ self.GlslVersionString, "\n", vertex_shader };
         const vert_handle = gl.createShader(gl.GL_VERTEX_SHADER);
-        gl.shaderSource(vert_handle, 2, &vertex_shader_with_version[0]);
+        gl.shaderSource(vert_handle, @intCast(u32, vertex_shader_with_version.len), &vertex_shader_with_version[0]);
         gl.compileShader(vert_handle);
-        _ = self.checkShader(vert_handle, "vertex shader") catch {
-            unreachable;
-        };
+        try self.checkShader(vert_handle, "vertex shader");
 
-        const fragment_shader_with_version: [2][*:0]const u8 = .{ self.GlslVersionString, fragment_shader };
+        const fragment_shader_with_version = [_][*:0]const u8{ self.GlslVersionString, "\n", fragment_shader };
         const frag_handle = gl.createShader(gl.GL_FRAGMENT_SHADER);
-        gl.shaderSource(frag_handle, 2, &fragment_shader_with_version[0]);
+        gl.shaderSource(frag_handle, @intCast(u32, fragment_shader_with_version.len), &fragment_shader_with_version[0]);
         gl.compileShader(frag_handle);
-        _ = self.checkShader(frag_handle, "fragment shader") catch {
-            unreachable;
-        };
+        try self.checkShader(frag_handle, "fragment shader");
 
         // Link
         self.ShaderHandle = gl.createProgram();
         gl.attachShader(self.ShaderHandle, vert_handle);
         gl.attachShader(self.ShaderHandle, frag_handle);
         gl.linkProgram(self.ShaderHandle);
-        _ = self.checkProgram(self.ShaderHandle, "shader program") catch {
-            unreachable;
-        };
+        try self.checkProgram(self.ShaderHandle, "shader program");
 
         gl.detachShader(self.ShaderHandle, vert_handle);
         gl.detachShader(self.ShaderHandle, frag_handle);
@@ -211,12 +211,10 @@ const Data = struct {
         gl.bindBuffer(gl.GL_ARRAY_BUFFER, @intCast(c_uint, last_array_buffer));
 
         gl.bindVertexArray(@intCast(c_uint, last_vertex_array));
-
-        return true;
     }
 };
 
-pub fn init(allocator: std.mem.Allocator, glsl_version: []const u8) !void {
+pub fn init(allocator: std.mem.Allocator, glsl_version: [:0]const u8) !void {
     _ = glsl_version;
 
     var io = imgui.GetIO();
@@ -224,7 +222,7 @@ pub fn init(allocator: std.mem.Allocator, glsl_version: []const u8) !void {
         @panic("Already initialized a renderer backend!");
     }
 
-    const bd = try Data.new(allocator);
+    const bd = try Data.new(allocator, glsl_version);
     io.BackendRendererUserData = bd;
     io.BackendRendererName = "imgui_impl_Ur.zig";
 }
@@ -245,7 +243,7 @@ pub fn newFrame() !void {
         @panic("Did you call ImGui_ImplOpenGL3_Init()?");
     };
     if (bd.ShaderHandle == 0) {
-        std.debug.assert(try bd.createDeviceObjects());
+        try bd.createDeviceObjects();
     }
 }
 

@@ -3,6 +3,7 @@ const builtin = @import("builtin");
 const imgui = @import("imgui");
 const imgui_opengl_backend = @import("./imgui_opengl_backend.zig");
 const gl = @import("./gl.zig");
+const glsl_version: [:0]const u8 = "#version 130";
 const logger = std.log.scoped(.Ur);
 
 fn getShaderType(shader_type: gl.GLenum) []const u8 {
@@ -58,7 +59,9 @@ pub export fn main(_: c_int, _: **u8) c_int {
 pub fn init(allocator: std.mem.Allocator) !Self {
     var self = Self{};
 
-    logger.debug("", .{});
+    logger.info("OpenGL Version:  {s}", .{std.mem.span(gl.getString(gl.GL_VERSION))});
+    logger.info("OpenGL Vendor:   {s}", .{std.mem.span(gl.getString(gl.GL_VENDOR))});
+    logger.info("OpenGL Renderer: {s}", .{std.mem.span(gl.getString(gl.GL_RENDERER))});
 
     var vertex_buffer: gl.GLuint = undefined;
     gl.genBuffers(1, &vertex_buffer);
@@ -86,7 +89,7 @@ pub fn init(allocator: std.mem.Allocator) !Self {
     var io = imgui.GetIO();
     _ = io;
 
-    try imgui_opengl_backend.init(allocator, "");
+    try imgui_opengl_backend.init(allocator, glsl_version);
 
     return self;
 }
@@ -97,7 +100,7 @@ pub fn deinit(self: *Self) void {
     imgui.DestroyContext();
 }
 
-pub fn render(self: *Self, width: i32, height: i32) void {
+pub fn render(self: *Self, width: i32, height: i32) !void {
     // update input
     try imgui_opengl_backend.newFrame();
     imgui.NewFrame();
