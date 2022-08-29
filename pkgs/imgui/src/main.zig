@@ -1163,7 +1163,7 @@ pub const ImDrawCmd = extern struct {
     VtxOffset: c_uint,
     IdxOffset: c_uint,
     ElemCount: c_uint,
-    UserCallback: *const ImDrawCallback,
+    UserCallback: ?*const ImDrawCallback,
     UserCallbackData: ?*anyopaque,
 };
 

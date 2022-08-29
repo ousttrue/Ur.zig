@@ -6,6 +6,10 @@ void viewport(GLint x, GLint y, GLsizei width, GLsizei height) {
   glViewport(x, y, width, height);
 }
 
+void scissor(GLint x, GLint y, GLsizei width, GLsizei height) {
+  glad_glScissor(x, y, width, height);
+}
+
 void clearColor(GLfloat red, GLfloat green, GLfloat blue, GLfloat alpha) {
   glClearColor(red, green, blue, alpha);
 }
@@ -21,6 +25,11 @@ void bindBuffer(GLenum target, GLuint buffer) {
 void bufferData(GLenum target, GLsizeiptr size, const GLvoid *data,
                 GLenum usage) {
   glad_glBufferData(target, size, data, usage);
+}
+
+void bufferSubData(GLenum target, GLintptr offset, GLsizeiptr size,
+                   const GLvoid *data) {
+  glad_glBufferSubData(target, offset, size, data);
 }
 
 GLuint createShader(GLenum shaderType) {
@@ -89,9 +98,14 @@ void uniformMatrix4fv(GLint location, GLsizei count, GLboolean transpose,
                       const GLfloat *value) {
   glad_glUniformMatrix4fv(location, count, transpose, value);
 }
+void uniform1i(GLint location, GLint v0) { glad_glUniform1i(location, v0); }
 
 void drawArrays(GLenum mode, GLint first, GLsizei count) {
   glad_glDrawArrays(mode, first, count);
+}
+void drawElements(GLenum mode, GLsizei count, GLenum type,
+                  const GLvoid *indices) {
+  glad_glDrawElements(mode, count, type, indices);
 }
 
 void getIntegerv(GLenum pname, GLint *data) { glad_glGetIntegerv(pname, data); }
@@ -100,7 +114,7 @@ void bindTexture(GLenum target, GLuint texture) {
   glad_glBindTexture(target, texture);
 }
 
-void bindVertexArray(GLuint array) { glad_glBindVertexArray(array); }
+void activeTexture(GLenum texture) { glad_glActiveTexture(texture); }
 
 void genTextures(GLsizei n, GLuint *textures) {
   glad_glGenTextures(n, textures);
@@ -112,4 +126,23 @@ void texParameteri(GLenum target, GLenum pname, GLint param) {
 
 void pixelStorei(GLenum pname, GLint param) {
   glad_glPixelStorei(pname, param);
+}
+
+void genVertexArrays(GLsizei n, GLuint *arrays) {
+  glad_glGenVertexArrays(n, arrays);
+}
+void deleteVertexArrays(GLsizei n, const GLuint *arrays) {
+  glad_glDeleteVertexArrays(n, arrays);
+}
+
+void bindVertexArray(GLuint array) { glad_glBindVertexArray(array); }
+
+void enable(GLenum cap) { glEnable(cap); }
+void disable(GLenum cap) { glDisable(cap); }
+
+void blendEquation(GLenum mode) { glad_glBlendEquation(mode); }
+void blendFuncSeparate(GLenum srcRGB, GLenum dstRGB, GLenum srcAlpha,
+                       GLenum dstAlpha) {
+
+  glad_glBlendFuncSeparate(srcRGB, dstRGB, srcAlpha, dstAlpha);
 }

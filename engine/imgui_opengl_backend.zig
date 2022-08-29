@@ -106,7 +106,7 @@ const Data = struct {
         io.Fonts.?.GetTexDataAsRGBA32(&pixels, &width, &height, .{}); // Load as RGBA 32-bit (75% of the memory is wasted, but default font is so small) because it is more likely to be compatible with user's existing shaders. If your ImTextureId represent a higher-level concept than just a GL texture id, consider calling GetTexDataAsAlpha8() instead to save on GPU memory.
 
         // Upload texture to graphics system
-        // (Bilinear sampling is required by default. Set 'io.Fonts->Flags |= ImFontAtlasFlags_NoBakedLines' or 'style.AntiAliasedLinesUseTex = false' to allow point/nearest sampling)
+        // (Bilinear sampling is required by default. Set 'io.Fonts.Flags |= ImFontAtlasFlags_NoBakedLines' or 'style.AntiAliasedLinesUseTex = false' to allow point/nearest sampling)
         var last_texture: gl.GLint = undefined;
         gl.getIntegerv(gl.GL_TEXTURE_BINDING_2D, &last_texture);
         gl.genTextures(1, &self.FontTexture);
@@ -142,7 +142,7 @@ const Data = struct {
 
         // Parse GLSL version string
         var glsl_version: c_int = 130;
-        // c.sscanf(&bd.GlslVersionString[0], "#version %d", &glsl_version);
+        // c.sscanf(&self.GlslVersionString[0], "#version %d", &glsl_version);
         const vertex_shader_glsl_120: [:0]const u8 = @embedFile("./imgui_120.vs");
         const vertex_shader_glsl_130: [:0]const u8 = @embedFile("./imgui_130.vs");
         const vertex_shader_glsl_300_es: [:0]const u8 = @embedFile("./imgui_300.vs");
@@ -212,6 +212,215 @@ const Data = struct {
 
         gl.bindVertexArray(@intCast(c_uint, last_vertex_array));
     }
+
+    fn render(self: *Data, draw_data: *const imgui.ImDrawData) void {
+        // Avoid rendering when minimized, scale coordinates for retina displays (screen coordinates != framebuffer coordinates)
+        const fb_width = @floatToInt(i32, draw_data.DisplaySize.x * draw_data.FramebufferScale.x);
+        const fb_height = @floatToInt(i32, draw_data.DisplaySize.y * draw_data.FramebufferScale.y);
+        if (fb_width <= 0 or fb_height <= 0)
+            return;
+
+        // Backup GL state
+        var last_active_texture: gl.GLint = undefined;
+        gl.getIntegerv(gl.GL_ACTIVE_TEXTURE, &last_active_texture);
+        gl.activeTexture(gl.GL_TEXTURE0);
+        var last_program: gl.GLint = undefined;
+        gl.getIntegerv(gl.GL_CURRENT_PROGRAM, &last_program);
+        var last_texture: gl.GLint = undefined;
+        gl.getIntegerv(gl.GL_TEXTURE_BINDING_2D, &last_texture);
+        // #ifdef IMGUI_IMPL_OPENGL_MAY_HAVE_BIND_SAMPLER
+        //     GLuint last_sampler; if (self.GlVersion >= 330) { glGetIntegerv(GL_SAMPLER_BINDING, (GLint*)&last_sampler); } else { last_sampler = 0; }
+        // #endif
+        var last_array_buffer: gl.GLint = undefined;
+        gl.getIntegerv(gl.GL_ARRAY_BUFFER_BINDING, &last_array_buffer);
+        // #ifndef IMGUI_IMPL_OPENGL_USE_VERTEX_ARRAY
+        //     // This is part of VAO on OpenGL 3.0+ and OpenGL ES 3.0+.
+        //     GLint last_element_array_buffer; glGetIntegerv(GL_ELEMENT_ARRAY_BUFFER_BINDING, &last_element_array_buffer);
+        //     ImGui_ImplOpenGL3_VtxAttribState last_vtx_attrib_state_pos; last_vtx_attrib_state_pos.GetState(self.AttribLocationVtxPos);
+        //     ImGui_ImplOpenGL3_VtxAttribState last_vtx_attrib_state_uv; last_vtx_attrib_state_uv.GetState(self.AttribLocationVtxUV);
+        //     ImGui_ImplOpenGL3_VtxAttribState last_vtx_attrib_state_color; last_vtx_attrib_state_color.GetState(self.AttribLocationVtxColor);
+        // #endif
+        var last_vertex_array_object: gl.GLint = undefined;
+        gl.getIntegerv(gl.GL_VERTEX_ARRAY_BINDING, &last_vertex_array_object);
+        // #ifdef IMGUI_IMPL_HAS_POLYGON_MODE
+        //     GLint last_polygon_mode[2]; glGetIntegerv(GL_POLYGON_MODE, last_polygon_mode);
+        // #endif
+        //     GLint last_viewport[4]; glGetIntegerv(GL_VIEWPORT, last_viewport);
+        //     GLint last_scissor_box[4]; glGetIntegerv(GL_SCISSOR_BOX, last_scissor_box);
+        //     GLenum last_blend_src_rgb; glGetIntegerv(GL_BLEND_SRC_RGB, (GLint*)&last_blend_src_rgb);
+        //     GLenum last_blend_dst_rgb; glGetIntegerv(GL_BLEND_DST_RGB, (GLint*)&last_blend_dst_rgb);
+        //     GLenum last_blend_src_alpha; glGetIntegerv(GL_BLEND_SRC_ALPHA, (GLint*)&last_blend_src_alpha);
+        //     GLenum last_blend_dst_alpha; glGetIntegerv(GL_BLEND_DST_ALPHA, (GLint*)&last_blend_dst_alpha);
+        //     GLenum last_blend_equation_rgb; glGetIntegerv(GL_BLEND_EQUATION_RGB, (GLint*)&last_blend_equation_rgb);
+        //     GLenum last_blend_equation_alpha; glGetIntegerv(GL_BLEND_EQUATION_ALPHA, (GLint*)&last_blend_equation_alpha);
+        //     GLboolean last_enable_blend = glIsEnabled(GL_BLEND);
+        //     GLboolean last_enable_cull_face = glIsEnabled(GL_CULL_FACE);
+        //     GLboolean last_enable_depth_test = glIsEnabled(GL_DEPTH_TEST);
+        //     GLboolean last_enable_stencil_test = glIsEnabled(GL_STENCIL_TEST);
+        //     GLboolean last_enable_scissor_test = glIsEnabled(GL_SCISSOR_TEST);
+        // #ifdef IMGUI_IMPL_OPENGL_MAY_HAVE_PRIMITIVE_RESTART
+        //     GLboolean last_enable_primitive_restart = (self.GlVersion >= 310) ? glIsEnabled(GL_PRIMITIVE_RESTART) : GL_FALSE;
+        // #endif
+
+        // Setup desired GL state
+        // Recreate the VAO every time (this is to easily allow multiple GL contexts to be rendered to. VAO are not shared among GL contexts)
+        // The renderer would actually work without any VAO bound, but then our VertexAttrib calls would overwrite the default one currently bound.
+        var vertex_array_object: gl.GLuint = 0;
+        gl.genVertexArrays(1, &vertex_array_object);
+        self.setupRenderState(draw_data, fb_width, fb_height, vertex_array_object);
+
+        // Will project scissor/clipping rectangles into framebuffer space
+        const clip_off = draw_data.DisplayPos; // (0,0) unless using multi-viewports
+        const clip_scale = draw_data.FramebufferScale; // (1,1) unless using retina display which are often (2,2)
+
+        // Render command lists
+        for (@ptrCast([*]*imgui.ImDrawList, draw_data.CmdLists.?)[0..@intCast(usize, draw_data.CmdListsCount)]) |cmd_list| {
+
+            // Upload vertex/index buffers
+            // - On Intel windows drivers we got reports that regular glBufferData() led to accumulating leaks when using multi-viewports, so we started using orphaning + glBufferSubData(). (See https://github.com/ocornut/imgui/issues/4468)
+            // - On NVIDIA drivers we got reports that using orphaning + glBufferSubData() led to glitches when using multi-viewports.
+            // - OpenGL drivers are in a very sorry state in 2022, for now we are switching code path based on vendors.
+            const vtx_buffer_size = cmd_list.VtxBuffer.Size * @sizeOf(imgui.ImDrawVert);
+            const idx_buffer_size = cmd_list.IdxBuffer.Size * @sizeOf(u16);
+            if (self.UseBufferSubData) {
+                if (self.VertexBufferSize < vtx_buffer_size) {
+                    self.VertexBufferSize = vtx_buffer_size;
+                    gl.bufferData(gl.GL_ARRAY_BUFFER, self.VertexBufferSize, null, gl.GL_STREAM_DRAW);
+                }
+                if (self.IndexBufferSize < idx_buffer_size) {
+                    self.IndexBufferSize = idx_buffer_size;
+                    gl.bufferData(gl.GL_ELEMENT_ARRAY_BUFFER, self.IndexBufferSize, null, gl.GL_STREAM_DRAW);
+                }
+                gl.bufferSubData(gl.GL_ARRAY_BUFFER, 0, vtx_buffer_size, cmd_list.VtxBuffer.Data);
+                gl.bufferSubData(gl.GL_ELEMENT_ARRAY_BUFFER, 0, idx_buffer_size, cmd_list.IdxBuffer.Data);
+            } else {
+                gl.bufferData(gl.GL_ARRAY_BUFFER, vtx_buffer_size, cmd_list.VtxBuffer.Data, gl.GL_STREAM_DRAW);
+                gl.bufferData(gl.GL_ELEMENT_ARRAY_BUFFER, idx_buffer_size, cmd_list.IdxBuffer.Data, gl.GL_STREAM_DRAW);
+            }
+
+            const p = @ptrCast([*]const imgui.ImDrawCmd, @alignCast(@alignOf(imgui.ImDrawCmd), cmd_list.CmdBuffer.Data));
+            for (p[0..@intCast(usize, cmd_list.CmdBuffer.Size)]) |*pcmd| {
+                //             const ImDrawCmd* pcmd = &cmd_list.CmdBuffer[cmd_i];
+                if (pcmd.UserCallback != null) {
+                    // User callback, registered via ImDrawList::AddCallback()
+                    // (ImDrawCallback_ResetRenderState is a special callback value used by the user to request the renderer to reset render state.)
+                    // if (pcmd.UserCallback == imgui.ImDrawCallback_ResetRenderState) {
+                    self.setupRenderState(draw_data, fb_width, fb_height, vertex_array_object);
+                    // } else {
+                    //     pcmd.UserCallback(cmd_list, pcmd);
+                    // }
+                } else {
+                    // Project scissor/clipping rectangles into framebuffer space
+                    const clip_min = imgui.ImVec2{ .x = (pcmd.ClipRect.x - clip_off.x) * clip_scale.x, .y = (pcmd.ClipRect.y - clip_off.y) * clip_scale.y };
+                    const clip_max = imgui.ImVec2{ .x = (pcmd.ClipRect.z - clip_off.x) * clip_scale.x, .y = (pcmd.ClipRect.w - clip_off.y) * clip_scale.y };
+                    if (clip_max.x <= clip_min.x or clip_max.y <= clip_min.y)
+                        continue;
+
+                    // Apply scissor/clipping rectangle (Y is inverted in OpenGL)
+                    gl.scissor(
+                        @floatToInt(c_int, clip_min.x),
+                        @floatToInt(c_int, (@intToFloat(f32, fb_height) - clip_max.y)),
+                        @floatToInt(c_int, (clip_max.x - clip_min.x)),
+                        @floatToInt(c_int, (clip_max.y - clip_min.y)),
+                    );
+
+                    // Bind texture, Draw
+                    gl.bindTexture(gl.GL_TEXTURE_2D, @intCast(u32, @ptrToInt(pcmd.TextureId)));
+                    // #ifdef IMGUI_IMPL_OPENGL_MAY_HAVE_VTX_OFFSET
+                    //                 if (self.GlVersion >= 320)
+                    //                     glDrawElementsBaseVertex(GL_TRIANGLES, (GLsizei)pcmd.ElemCount, sizeof(ImDrawIdx) == 2 ? GL_UNSIGNED_SHORT : GL_UNSIGNED_INT, (void*)(intptr_t)(pcmd.IdxOffset * sizeof(ImDrawIdx)), (GLint)pcmd.VtxOffset);
+                    //                 else
+                    // #endif
+                    gl.drawElements(
+                        gl.GL_TRIANGLES,
+                        @intCast(c_int, pcmd.ElemCount),
+                        gl.GL_UNSIGNED_SHORT,
+                        pcmd.IdxOffset * 2,
+                    );
+                }
+            }
+        }
+
+        // Destroy the temporary VAO
+        gl.deleteVertexArrays(1, &vertex_array_object);
+
+        // Restore modified GL state
+        gl.useProgram(@intCast(u32, last_program));
+        gl.bindTexture(gl.GL_TEXTURE_2D, @intCast(u32, last_texture));
+        // #ifdef IMGUI_IMPL_OPENGL_MAY_HAVE_BIND_SAMPLER
+        //     if (self.GlVersion >= 330)
+        //         glBindSampler(0, last_sampler);
+        // #endif
+        gl.activeTexture(@intCast(u32, last_active_texture));
+        gl.bindVertexArray(@intCast(u32, last_vertex_array_object));
+        gl.bindBuffer(gl.GL_ARRAY_BUFFER, @intCast(u32, last_array_buffer));
+        //     glBlendEquationSeparate(last_blend_equation_rgb, last_blend_equation_alpha);
+        //     glBlendFuncSeparate(last_blend_src_rgb, last_blend_dst_rgb, last_blend_src_alpha, last_blend_dst_alpha);
+        //     if (last_enable_blend) glEnable(GL_BLEND); else glDisable(GL_BLEND);
+        //     if (last_enable_cull_face) glEnable(GL_CULL_FACE); else glDisable(GL_CULL_FACE);
+        //     if (last_enable_depth_test) glEnable(GL_DEPTH_TEST); else glDisable(GL_DEPTH_TEST);
+        //     if (last_enable_stencil_test) glEnable(GL_STENCIL_TEST); else glDisable(GL_STENCIL_TEST);
+        //     if (last_enable_scissor_test) glEnable(GL_SCISSOR_TEST); else glDisable(GL_SCISSOR_TEST);
+        // #ifdef IMGUI_IMPL_OPENGL_MAY_HAVE_PRIMITIVE_RESTART
+        //     if (self.GlVersion >= 310) { if (last_enable_primitive_restart) glEnable(GL_PRIMITIVE_RESTART); else glDisable(GL_PRIMITIVE_RESTART); }
+        // #endif
+
+        // #ifdef IMGUI_IMPL_HAS_POLYGON_MODE
+        //     glPolygonMode(GL_FRONT_AND_BACK, (GLenum)last_polygon_mode[0]);
+        // #endif
+        //     glViewport(last_viewport[0], last_viewport[1], (GLsizei)last_viewport[2], (GLsizei)last_viewport[3]);
+        //     glScissor(last_scissor_box[0], last_scissor_box[1], (GLsizei)last_scissor_box[2], (GLsizei)last_scissor_box[3]);
+        //     (void)bd; // Not all compilation paths use this
+
+    }
+
+    fn setupRenderState(self: Data, draw_data: *const imgui.ImDrawData, fb_width: i32, fb_height: i32, vertex_array_object: gl.GLuint) void {
+        // Setup render state: alpha-blending enabled, no face culling, no depth testing, scissor enabled, polygon fill
+        gl.enable(gl.GL_BLEND);
+        gl.blendEquation(gl.GL_FUNC_ADD);
+        gl.blendFuncSeparate(gl.GL_SRC_ALPHA, gl.GL_ONE_MINUS_SRC_ALPHA, gl.GL_ONE, gl.GL_ONE_MINUS_SRC_ALPHA);
+        gl.disable(gl.GL_CULL_FACE);
+        gl.disable(gl.GL_DEPTH_TEST);
+        gl.disable(gl.GL_STENCIL_TEST);
+        gl.enable(gl.GL_SCISSOR_TEST);
+        // if (self.GlVersion >= 310)
+        //     gl.disable(gl.GL_PRIMITIVE_RESTART);
+        // gl.PolygonMode(gl.GL_FRONT_AND_BACK, gl.GL_FILL);
+
+        // Setup viewport, orthographic projection matrix
+        // Our visible imgui space lies from draw_data.DisplayPos (top left) to draw_data.DisplayPos+data_data.DisplaySize (bottom right). DisplayPos is (0,0) for single viewport apps.
+        gl.viewport(0, 0, fb_width, fb_height);
+        const L = draw_data.DisplayPos.x;
+        const R = draw_data.DisplayPos.x + draw_data.DisplaySize.x;
+        const T = draw_data.DisplayPos.y;
+        const B = draw_data.DisplayPos.y + draw_data.DisplaySize.y;
+        const ortho_projection = [4][4]f32{
+            .{ 2.0 / (R - L), 0.0, 0.0, 0.0 },
+            .{ 0.0, 2.0 / (T - B), 0.0, 0.0 },
+            .{ 0.0, 0.0, -1.0, 0.0 },
+            .{ (R + L) / (L - R), (T + B) / (B - T), 0.0, 1.0 },
+        };
+        gl.useProgram(self.ShaderHandle);
+        gl.uniform1i(self.AttribLocationTex, 0);
+        gl.uniformMatrix4fv(self.AttribLocationProjMtx, 1, gl.GL_FALSE, &ortho_projection[0][0]);
+
+        // #ifdef IMGUI_IMPL_OPENGL_MAY_HAVE_BIND_SAMPLER
+        //     if (self.GlVersion >= 330)
+        //         glBindSampler(0, 0); // We use combined texture/sampler state. Applications using GL 3.3 may set that otherwise.
+        // #endif
+
+        gl.bindVertexArray(vertex_array_object);
+
+        // Bind vertex/index buffers and setup attributes for ImDrawVert
+        gl.bindBuffer(gl.GL_ARRAY_BUFFER, self.VboHandle);
+        gl.bindBuffer(gl.GL_ELEMENT_ARRAY_BUFFER, self.ElementsHandle);
+        gl.enableVertexAttribArray(self.AttribLocationVtxPos);
+        gl.enableVertexAttribArray(self.AttribLocationVtxUV);
+        gl.enableVertexAttribArray(self.AttribLocationVtxColor);
+        gl.vertexAttribPointer(self.AttribLocationVtxPos, 2, gl.GL_FLOAT, gl.GL_FALSE, @sizeOf(imgui.ImDrawVert), @offsetOf(imgui.ImDrawVert, "pos"));
+        gl.vertexAttribPointer(self.AttribLocationVtxUV, 2, gl.GL_FLOAT, gl.GL_FALSE, @sizeOf(imgui.ImDrawVert), @offsetOf(imgui.ImDrawVert, "uv"));
+        gl.vertexAttribPointer(self.AttribLocationVtxColor, 4, gl.GL_UNSIGNED_BYTE, gl.GL_TRUE, @sizeOf(imgui.ImDrawVert), @offsetOf(imgui.ImDrawVert, "col"));
+    }
 };
 
 pub fn init(allocator: std.mem.Allocator, glsl_version: [:0]const u8) !void {
@@ -248,5 +457,9 @@ pub fn newFrame() !void {
 }
 
 pub fn renderDrawData(draw_data: *const imgui.ImDrawData) void {
-    _ = draw_data;
+    var bd = Data.get() orelse {
+        @panic("Did you call ImGui_ImplOpenGL3_Init()?");
+    };
+
+    bd.render(draw_data);
 }

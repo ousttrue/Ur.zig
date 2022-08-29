@@ -102,6 +102,9 @@ pub fn deinit(self: *Self) void {
 
 pub fn render(self: *Self, width: i32, height: i32) !void {
     // update input
+    var io = imgui.GetIO();
+    io.DisplaySize = .{ .x = @intToFloat(f32, width), .y = @intToFloat(f32, height) };
+
     try imgui_opengl_backend.newFrame();
     imgui.NewFrame();
 
