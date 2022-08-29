@@ -1,4 +1,5 @@
 const std = @import("std");
+const builtin = @import("builtin");
 const gl = @import("./gl.zig");
 const logger = std.log.scoped(.Ur);
 
@@ -37,7 +38,8 @@ const vertices = [3]Vertex{
 };
 
 const vertex_shader_text = @embedFile("./shader.vs");
-const fragment_shader_text = @embedFile("./shader.fs");
+const prefix = if (builtin.target.cpu.arch == .wasm32) "precision mediump float;\n" else "";
+const fragment_shader_text = prefix ++ @embedFile("./shader.fs");
 const Self = @This();
 
 program: gl.GLuint = undefined,
