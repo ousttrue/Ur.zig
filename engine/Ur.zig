@@ -2,13 +2,13 @@ const std = @import("std");
 const gl = @import("./gl.zig");
 const logger = std.log.scoped(.Ur);
 
-fn getShaderType(shader_type: gl.GLenum)[]const u8
-{
-    return switch(shader_type)
-    {
+fn getShaderType(shader_type: gl.GLenum) []const u8 {
+    return switch (shader_type) {
         gl.GL_VERTEX_SHADER => "vs",
-        gl.GL_FRAGMENT_SHADER => "fs",        
-        else=>{unreachable;}
+        gl.GL_FRAGMENT_SHADER => "fs",
+        else => {
+            unreachable;
+        },
     };
 }
 
@@ -23,7 +23,7 @@ fn compileShader(shader_type: gl.GLenum, src: []const u8) !c_uint {
         var log_length: gl.GLsizei = undefined;
         var message: [1024]u8 = undefined;
         gl.getShaderInfoLog(shader, message.len, &log_length, &message[0]);
-        logger.err("{s}: {s}", .{getShaderType(shader_type), message[0..@intCast(usize, log_length)]});
+        logger.err("{s}: {s}", .{ getShaderType(shader_type), message[0..@intCast(usize, log_length)] });
         return error.compileError;
     }
     return shader;
@@ -44,6 +44,11 @@ program: gl.GLuint = undefined,
 mvp_location: gl.GLuint = undefined,
 vpos_location: gl.GLuint = undefined,
 vcol_location: gl.GLuint = undefined,
+
+// wasi
+pub export fn main(_: c_int, _: **u8) c_int {
+    return 0;
+}
 
 pub fn init() Self {
     var self = Self{};

@@ -14,7 +14,8 @@
         {
             "label": "build wasm",
             "type": "shell",
-            "command": "zig build -Dtarget=wasm32-freestanding",
+            // "command": "zig build -Dtarget=wasm32-freestanding",
+            "command": "zig build -Dtarget=wasm32-wasi",
             "problemMatcher": [
                 "$gcc"
             ],

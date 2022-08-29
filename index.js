@@ -39,6 +39,47 @@ var importObject = {
             console.log(arg);
         }
     },
+    // https://github.com/ziglang/zig/blob/master/lib/std/os/wasi.zig
+    wasi_snapshot_preview1: {
+        args_get: (argv, argv_buf) => 0,
+        args_sizes_get: (argc, argv_buf_size) => 0,
+        fd_write: (fd, iovs, iovsLen, nwritten) => {
+            // console.log(`*** call fd_write: fd=${fd}, iovs=${iovs}, iovsLen=${iovsLen}, nwritten=${nwritten}`)
+            const view = new DataView(memory.buffer)
+        
+            const sizeList = Array.from(Array(iovsLen), (v, i) => {
+                const ptr = iovs + i * 8
+        
+                // 出力内容の格納先のポインタ取得
+                const bufStart = view.getUint32(ptr, true)
+                // 出力内容のバイトサイズを取得
+                const bufLen = view.getUint32(ptr + 4, true)
+        
+                const buf = new Uint8Array(memory.buffer, bufStart, bufLen)
+        
+                // 出力内容の String 化
+                const msg = String.fromCharCode(...buf)
+        
+                // 出力
+                console.log(msg)
+        
+                return buf.byteLength
+            })
+        
+            // 出力済みのバイトサイズ合計
+            const totalSize = sizeList.reduce((acc, v) => acc + v)
+        
+            // 出力済みのバイトサイズを設定
+            view.setUint32(nwritten, totalSize, true)
+
+            return 0
+        },
+        proc_exit: () => { },
+        fd_prestat_get: () => { },
+        fd_prestat_dir_name: () => { },
+        environ_sizes_get: () => { },
+        environ_get: () => { }
+    },
     env: {
         viewport: (x, y, width, height) => gl.viewport(x, y, width, height),
         clear: (x) => gl.clear(x),
@@ -59,6 +100,9 @@ var importObject = {
             glShaders.push(gl.createShader(shaderType));
             return glShaders.length - 1;
         },
+        deleteShader: (shader) => {
+            gl.deleteShader(glShaders[shader]);
+        },
         shaderSource: (shader, string, length) => {
             const text = readCharStr(memory.buffer, string, length);
             gl.shaderSource(glShaders[shader], text);
@@ -69,6 +113,17 @@ var importObject = {
             if (!success) {
                 console.error(gl.getShaderInfoLog(glShaders[shader]));
             }
+        },
+        getShaderiv: (shader, pname, params) => {
+            const success = gl.getShaderParameter(glShaders[shader], pname);
+            const view = new DataView(memory.buffer)
+            view.setUint32(params, success, true);
+        },
+        getShaderInfoLog: (shader, maxLength, length, infoLog) => {
+            const message = gl.getShaderInfoLog(glShaders[shader]);
+            const view = new DataView(memory.buffer)
+            // TODO
+            view.setUint32(length, 0, true);
         },
         createProgram: () => {
             glPrograms.push(gl.createProgram());
