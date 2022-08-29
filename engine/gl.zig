@@ -42,6 +42,8 @@ pub const GL_CLAMP_TO_EDGE = 33071;
 pub const GL_TEXTURE_WRAP_T = 10243;
 pub const GL_PACK_ALIGNMENT = 3333;
 
+pub const GL_COMPILE_STATUS = 0x8B81;
+
 // [wasm] inject WebGL when instanciate by importObject
 // [desktop] inject OpenGL when link with glad_placeholders.c
 pub extern fn viewport(x: GLint, y: GLint, width: GLsizei, height: GLsizei) void;
@@ -51,8 +53,11 @@ pub extern fn genBuffers(n: GLsizei, buffers: *GLuint) void;
 pub extern fn bindBuffer(target: GLenum, buffer: GLuint) void;
 pub extern fn bufferData(target: GLenum, size: GLsizeiptr, data: *const anyopaque, usage: GLenum) void;
 pub extern fn createShader(shaderType: GLenum) c_uint;
+pub extern fn deleteShader(shader: GLuint) void;
 pub extern fn shaderSource(shader: GLuint, string: *const u8, len: GLuint) void;
 pub extern fn compileShader(shader: GLuint) void;
+pub extern fn getShaderiv(shader: GLuint, pname: GLenum, params: *GLint) void;
+pub extern fn getShaderInfoLog(shader: GLuint, maxLength: GLsizei, length: *GLsizei, infoLog: *u8) void;
 pub extern fn createProgram() GLuint;
 pub extern fn attachShader(program: GLuint, shader: GLuint) void;
 pub extern fn linkProgram(program: GLuint) void;

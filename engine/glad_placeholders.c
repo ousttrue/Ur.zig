@@ -25,11 +25,22 @@ GLuint createShader(GLenum shaderType) {
   return glad_glCreateShader(shaderType);
 }
 
+void deleteShader(GLuint shader) { glad_glDeleteShader(shader); }
+
 void shaderSource(GLuint shader, const GLchar *string, GLuint length) {
   glad_glShaderSource(shader, 1, &string, &length);
 }
 
 void compileShader(GLuint shader) { glad_glCompileShader(shader); }
+
+void getShaderiv(GLuint shader, GLenum pname, GLint *params) {
+  glad_glGetShaderiv(shader, pname, params);
+}
+
+void getShaderInfoLog(GLuint shader, GLsizei maxLength, GLsizei *length,
+                      GLchar *infoLog) {
+  glad_glGetShaderInfoLog(shader, maxLength, length, infoLog);
+}
 
 GLuint createProgram(void) { return glad_glCreateProgram(); }
 
