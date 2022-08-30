@@ -78,7 +78,7 @@ const IMGUI_SOURCES = [_][]const u8{
     IMGUI_BASE ++ "/imgui_draw.cpp",
     IMGUI_BASE ++ "/imgui_widgets.cpp",
     IMGUI_BASE ++ "/imgui_tables.cpp",
-    IMGUI_BASE ++ "/imgui_demo.cpp",
+    // IMGUI_BASE ++ "/imgui_demo.cpp",
     // IMGUI_BASE ++ "/backends/imgui_impl_glfw.cpp",
     // IMGUI_BASE ++ "/backends/imgui_impl_opengl3.cpp",
     "pkgs/imgui/src/imvec2_byvalue.cpp",

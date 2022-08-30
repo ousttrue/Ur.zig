@@ -1,6 +1,7 @@
 const std = @import("std");
 const builtin = @import("builtin");
 const Ur = @import("./Ur.zig");
+const logger = std.log.scoped(.main);
 pub const gl = @import("./gl.zig");
 
 var global_string: [1024]u8 = undefined;
@@ -29,13 +30,10 @@ pub export fn render(width: c_int, height: c_int) void {
     _ = height;
     if (ur == null) {
         ur = Ur.init(std.heap.page_allocator) catch {
-            unreachable;
+            @panic("fail to init");
         };
     }
-    return;
-    // if (ur) |*r| {
-    //     r.render(width, height) catch {
-    //         unreachable;
-    //     };
-    // }
+    if (ur) |*r| {
+        r.render(width, height);
+    }
 }

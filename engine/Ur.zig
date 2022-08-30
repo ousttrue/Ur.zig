@@ -3,16 +3,14 @@ const builtin = @import("builtin");
 const imgui = @import("imgui");
 const imgui_opengl_backend = @import("./imgui_opengl_backend.zig");
 const gl = @import("./gl.zig");
-const glsl_version: [:0]const u8 = "#version 130";
+const glsl_version = if (builtin.target.cpu.arch == .wasm32) 300 else 130;
 const logger = std.log.scoped(.Ur);
 
 fn getShaderType(shader_type: gl.GLenum) []const u8 {
     return switch (shader_type) {
         gl.GL_VERTEX_SHADER => "vs",
         gl.GL_FRAGMENT_SHADER => "fs",
-        else => {
-            unreachable;
-        },
+        else => "unknown",
     };
 }
 
@@ -83,6 +81,7 @@ pub fn init(allocator: std.mem.Allocator) !Self {
     _ = imgui.CreateContext(.{});
     var io = imgui.GetIO();
     _ = io;
+    _ = io.Fonts.?.AddFontDefault(.{});
 
     try imgui_opengl_backend.init(allocator, glsl_version);
 
@@ -95,21 +94,27 @@ pub fn deinit(self: *Self) void {
     imgui.DestroyContext();
 }
 
-pub fn render(self: *Self, width: i32, height: i32) !void {
+pub fn render(self: *Self, width: i32, height: i32) void {
+    _ = self;
+    _ = width;
+    _ = height;
+
     {
         // update input
         var io = imgui.GetIO();
         io.DisplaySize = .{ .x = @intToFloat(f32, width), .y = @intToFloat(f32, height) };
 
-        try imgui_opengl_backend.newFrame();
+        imgui_opengl_backend.newFrame() catch |err| {
+            logger.err("{}", .{err});
+        };
         imgui.NewFrame();
 
         // 1. Show the big demo window (Most of the sample code is in imgui.ShowDemoWindow()! You can browse its code to learn more about Dear ImGui!).
-        if (self.show_demo_window)
-            imgui.ShowDemoWindow(.{ .p_open = &self.show_demo_window });
+        // if (self.show_demo_window)
+        //     imgui.ShowDemoWindow(.{ .p_open = &self.show_demo_window });
 
         // Rendering
-        imgui.Render();
+        // imgui.Render();
     }
 
     gl.viewport(0, 0, width, height);
@@ -127,5 +132,7 @@ pub fn render(self: *Self, width: i32, height: i32) !void {
     gl.uniformMatrix4fv(@intCast(c_int, self.mvp_location), 1, gl.GL_FALSE, &mvp[0]);
     gl.drawArrays(gl.GL_TRIANGLES, 0, 3);
 
-    // imgui_opengl_backend.renderDrawData(imgui.GetDrawData().?);
+    imgui_opengl_backend.renderDrawData(imgui.GetDrawData().?) catch |err| {
+        logger.err("{}", .{err});
+    };
 }

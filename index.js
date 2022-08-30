@@ -25,20 +25,48 @@ const glBuffers = [];
 const glTextures = [];
 const glUniformLocations = [];
 
+const getMemory = () => new DataView(instance.exports.memory.buffer);
+
 const memToString = (ptr, len) => {
-    const array = new Uint8Array(memory.buffer, ptr, len)
+    let array = null;
+    if (len) {
+        array = new Uint8Array(getMemory().buffer, ptr, len)
+    }
+    else {
+        // zero terminated
+        let end = ptr;
+        let i = 0;
+        const buffer = new Uint8Array(getMemory().buffer, ptr);
+        for (; i < buffer.length; ++i) {
+            if (buffer[i] == 0) {
+                break;
+            }
+        }
+        array = new Uint8Array(getMemory().buffer, ptr, i);
+    }
     const decoder = new TextDecoder()
-    return decoder.decode(array)
+    const text = decoder.decode(array)
+    console.debug(`memToString ${len} => ${text}`);
+    return text;
 }
 
 const memAllocString = (src) => {
     const buffer = (new TextEncoder).encode(src);
     const dstPtr = instance.exports.getGlobalAddress();
-    const dst = new Uint8Array(memory.buffer, dstPtr, buffer.length);
+    const dst = new Uint8Array(getMemory().buffer, dstPtr, buffer.length);
     for (let i = 0; i < buffer.length; ++i) {
         dst[i] = buffer[i];
     }
-    return dstPtr
+    return dstPtr;
+}
+
+const memSetString = (dstPtr, maxLength, length, src) => {
+    const buffer = (new TextEncoder).encode(src);
+    const dst = new Uint8Array(getMemory().buffer, dstPtr, buffer.length);
+    for (let i = 0; i < buffer.length && i < maxLength; ++i) {
+        dst[i] = buffer[i];
+    }
+    getMemory().setUint32(length, Math.min(buffer.len, maxLength));
 }
 
 var importObject = {
@@ -61,12 +89,16 @@ var importObject = {
             let totalSize = 0;
             // WASM is 32bit
             for (let i = 0; i < iovsLen; ++i, iovs += 8) {
-                const size = memory.getUint32(iovs + 4, true);
-                const msg = memToString(memory.getUint32(iovs, true), size);
-                console.log(msg)
-                totalSize += size;
+                const size = getMemory().getUint32(iovs + 4, true);
+                if (size) {
+                    const msg = memToString(getMemory().getUint32(iovs, true), size).trim();
+                    if (msg) {
+                        console.log(msg)
+                    }
+                    totalSize += size;
+                }
             }
-            memory.setUint32(nwritten, totalSize, true)
+            getMemory().setUint32(nwritten, totalSize, true)
             return 0
         },
         proc_exit: () => { },
@@ -102,16 +134,16 @@ var importObject = {
         genBuffers: (num, dataPtr) => {
             for (let n = 0; n < num; n++, dataPtr += 4) {
                 glBuffers.push(gl.createBuffer());
-                memory.setUint32(dataPtr, glBuffers.length - 1, true);
+                getMemory().setUint32(dataPtr, glBuffers.length - 1, true);
             }
         },
         bindBuffer: (type, bufferId) => gl.bindBuffer(type, glBuffers[bufferId]),
         bufferData: (type, count, dataPtr, drawType) => {
-            const data = new Uint8Array(memory.buffer, Number(dataPtr), Number(count));
+            const data = new Uint8Array(getMemory().buffer, Number(dataPtr), Number(count));
             gl.bufferData(type, data, drawType);
         },
         bufferSubData: (target, offset, size, dataPtr) => {
-            const data = new Uint8Array(memory.buffer, Number(dataPtr), Number(size));
+            const data = new Uint8Array(getMemory().buffer, Number(dataPtr), Number(size));
             gl.bufferSubData(target, offset, data);
         },
         createShader: (shaderType) => {
@@ -121,27 +153,27 @@ var importObject = {
         deleteShader: (shader) => {
             gl.deleteShader(glShaders[shader]);
         },
-        shaderSource: (shader, string, length) => {
-            gl.shaderSource(glShaders[shader], memToString(string, length));
-        },
-        compileShader: (shader) => {
-            gl.compileShader(glShaders[shader]);
-            const success = gl.getShaderParameter(glShaders[shader], gl.COMPILE_STATUS);
-            if (!success) {
-                console.error(gl.getShaderInfoLog(glShaders[shader]));
+        shaderSource: (shader, count, srcs) => {
+            let list = [];
+            for (let i = 0; i < count; ++i, srcs += 4) {
+                const p = getMemory().getUint32(srcs, true);
+                const item = memToString(p);
+                list.push(item);
             }
+            gl.shaderSource(glShaders[shader], list.join(""));
         },
+        compileShader: (shader) => gl.compileShader(glShaders[shader]),
         getShaderiv: (shader, pname, params) => {
-            const success = gl.getShaderParameter(glShaders[shader], pname);
-            memory.setUint32(params, success, true);
+            const param = gl.getShaderParameter(glShaders[shader], pname);
+            getMemory().setUint32(params, param, true);
         },
         getShaderInfoLog: (shader, maxLength, length, infoLog) => {
             const message = gl.getShaderInfoLog(glShaders[shader]);
-            if (message) {
-                return memAllocString(message);
+            if (typeof (message) == "string") {
+                memSetString(infoLog, maxLength, length, message);
             }
             else {
-                return memAllocString("no getShaderInfoLog");
+                getMemory().setUint32(length, 0);
             }
         },
         createProgram: () => {
@@ -150,36 +182,28 @@ var importObject = {
         },
         attachShader: (program, shader) => gl.attachShader(glPrograms[program], glShaders[shader]),
         detachShader: (program, shader) => gl.detachShader(glPrograms[program], glShaders[shader]),
-        linkProgram: (program) => {
-            gl.linkProgram(glPrograms[program]);
-            const success = gl.getProgramParameter(glPrograms[program], gl.LINK_STATUS);
-            if (!success) {
-                console.error(gl.getProgramInfoLog(glPrograms[program]));
-            }
-        },
+        linkProgram: (program) => gl.linkProgram(glPrograms[program]),
         getProgramiv: (program, pname, params) => {
             const param = gl.getProgramParameter(glPrograms[program], pname);
             if (Number.isInteger(param)) {
-                memory.setUint32(params, param);
+                getMemory().setUint32(params, param);
             }
         },
         getProgramInfoLog: (program, maxLength, length, infoLog) => {
             const message = gl.getProgramInfoLog(glPrograms[program]);
-            if (message) {
-                return memAllocString(message);
+            if (typeof (message) == "string") {
+                memSetString(infoLog, maxLength, length, message);
             }
             else {
-                return memAllocString("no getProgramInfoLog");
+                getMemory().setUint32(length, 0);
             }
         },
-        getUniformLocation: (program, name, length) => {
-            const text = readCharStr(memory.buffer, name, length);
-            glUniformLocations.push(gl.getUniformLocation(glPrograms[program], text));
+        getUniformLocation: (program, name) => {
+            glUniformLocations.push(gl.getUniformLocation(glPrograms[program], memToString(name)));
             return glUniformLocations.length - 1;
         },
-        getAttribLocation: (program, name, length) => {
-            const text = readCharStr(memory.buffer, name, length);
-            return gl.getAttribLocation(glPrograms[program], text);
+        getAttribLocation: (program, name) => {
+            return gl.getAttribLocation(glPrograms[program], memToString(name));
         },
         enableVertexAttribArray: (index) => gl.enableVertexAttribArray(index),
         vertexAttribPointer: (index, size, type, normalized, stride, offset) => {
@@ -187,7 +211,7 @@ var importObject = {
         },
         useProgram: (program) => gl.useProgram(glPrograms[program]),
         uniformMatrix4fv: (location, count, transpose, value) => {
-            const values = new Float32Array(memory.buffer, value, 16 * count);
+            const values = new Float32Array(getMemory().buffer, value, 16 * count);
             gl.uniformMatrix4fv(glUniformLocations[location], count, values, transpose);
         },
         uniform1i: (location, v0) => gl.uniform1i(location, v0),
@@ -196,10 +220,10 @@ var importObject = {
         getIntegerv: (pname, data) => {
             const param = gl.getParameter(pname);
             if (Number.isInteger(param)) {
-                memory.setUint32(data, param);
+                getMemory().setUint32(data, param);
             }
             else {
-                memory.setUint32(data, -1);
+                getMemory().setUint32(data, -1);
             }
         },
         bindTexture: (target, texture) => gl.bindTexture(target, glTextures[texture]),
@@ -212,7 +236,7 @@ var importObject = {
             let ptr = textures;
             for (let i = 0; i < n; ++i, ptr += 4) {
                 glTextures.push(gl.createTexture());
-                memory.setUint32(ptr, glTextures.length - 1);
+                getMemory().setUint32(ptr, glTextures.length - 1);
             }
         },
         texParameteri: (target, pname, param) => gl.texParameteri(target, pname, param),
@@ -221,7 +245,7 @@ var importObject = {
             let ptr = arrays;
             for (let i = 0; i < n; ++i, ptr += 4) {
                 glVertexArrays.push(gl.createVertexArray());
-                memory.setUint32(ptr, glVertexArrays.length - 1);
+                getMemory().setUint32(ptr, glVertexArrays.length - 1);
             }
         },
         deleteVertexArrays: (n, array) => {
@@ -249,7 +273,6 @@ const compiled = await WebAssembly.compile(buffer);
 // instanciate env に webgl などを埋め込む
 const instance = await WebAssembly.instantiate(compiled, importObject);
 console.log(instance);
-const memory = new DataView(instance.exports.memory.buffer);
 
 // call
 function step(timestamp) {
@@ -258,7 +281,7 @@ function step(timestamp) {
     canvas.width = w;
     canvas.height = h;
     instance.exports.render(w, h);
-    window.requestAnimationFrame(step);
+    // window.requestAnimationFrame(step);
 }
 
 window.requestAnimationFrame(step);
