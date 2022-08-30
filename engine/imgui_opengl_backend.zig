@@ -31,7 +31,6 @@ const Data = struct {
     UseBufferSubData: bool = false,
 
     fn new(allocator: std.mem.Allocator, glsl_version: u32) !*Self {
-        logger.info("new", .{});
         var self = try allocator.create(Self);
         self.* = Self{
             .allocator = allocator,
@@ -80,26 +79,16 @@ const Data = struct {
     }
 
     // If you get an error please report on github. You may try different GL context version or GLSL version. See GL<>GLSL version table at the top of this file.
-    fn checkShader(handle: gl.GLuint) !void {
+    fn checkShader(desc: []const u8, handle: gl.GLuint) !void {
         var status: gl.GLint = 0;
         gl.getShaderiv(handle, gl.GL_COMPILE_STATUS, &status);
         if (status == gl.GL_TRUE) {
             return;
         }
-        // var log_length: gl.GLint = 0;
-        // gl.getShaderiv(handle, gl.GL_INFO_LOG_LENGTH, &log_length);
-        // if (status == gl.GL_FALSE) {
-        //     logger.err("ERROR: CreateDeviceObjects: failed to compile {s}! With GLSL: {}", .{ desc, self.glsl_version });
-        // }
-        // if (log_length > 1)
-        {
-            // var buf = try self.allocator.allocSentinel(u8, @intCast(usize, log_length), 0);
-            // defer self.allocator.free(buf);
-            var buf: [1024]u8 = undefined;
-            var len: c_int = undefined;
-            gl.getShaderInfoLog(handle, buf.len, &len, &buf[0]);
-            logger.err("{s}", .{buf[0..@intCast(usize, len)]});
-        }
+        var buf: [1024]u8 = undefined;
+        var len: c_int = undefined;
+        gl.getShaderInfoLog(handle, buf.len, &len, &buf[0]);
+        logger.err("{s}: {s}", .{ desc, buf[0..@intCast(usize, len)] });
         return error.compileError;
     }
 
@@ -110,32 +99,25 @@ const Data = struct {
         if (status == gl.GL_TRUE) {
             return;
         }
-        // var log_length: gl.GLint = 0;
-        // gl.getProgramiv(handle, gl.GL_INFO_LOG_LENGTH, &log_length);
-        // if (status == gl.GL_FALSE) {
-        //     logger.err("ERROR: CreateDeviceObjects: failed to link {s}! With GLSL {}", .{ desc, self.glsl_version });
-        // }
-        // if (log_length > 1)
-        {
-            // var buf = try self.allocator.allocSentinel(u8, @intCast(usize, log_length), 0);
-            // defer self.allocator.free(buf);
-            var buf: [1024]u8 = undefined;
-            var len: c_int = undefined;
-            gl.getProgramInfoLog(handle, buf.len, &len, &buf[0]);
-            logger.err("{s}", .{buf[0..@intCast(usize, len)]});
-        }
+        var buf: [1024]u8 = undefined;
+        var len: c_int = undefined;
+        gl.getProgramInfoLog(handle, buf.len, &len, &buf[0]);
+        logger.err("{s}", .{buf[0..@intCast(usize, len)]});
         return error.programError;
     }
 
     fn createFontsTexture(self: *Self) bool {
-        logger.info("createFontsTexture", .{});
         var io = imgui.GetIO();
 
         // Build texture atlas
+        const fonts = io.Fonts orelse {
+            return false;
+        };
+
         var pixels: ?*u8 = undefined;
         var width: c_int = undefined;
         var height: c_int = undefined;
-        io.Fonts.?.GetTexDataAsRGBA32(&pixels, &width, &height, .{}); // Load as RGBA 32-bit (75% of the memory is wasted, but default font is so small) because it is more likely to be compatible with user's existing shaders. If your ImTextureId represent a higher-level concept than just a GL texture id, consider calling GetTexDataAsAlpha8() instead to save on GPU memory.
+        fonts.GetTexDataAsRGBA32(&pixels, &width, &height, .{}); // Load as RGBA 32-bit (75% of the memory is wasted, but default font is so small) because it is more likely to be compatible with user's existing shaders. If your ImTextureId represent a higher-level concept than just a GL texture id, consider calling GetTexDataAsAlpha8() instead to save on GPU memory.
 
         // Upload texture to graphics system
         // (Bilinear sampling is required by default. Set 'io.Fonts.Flags |= ImFontAtlasFlags_NoBakedLines' or 'style.AntiAliasedLinesUseTex = false' to allow point/nearest sampling)
@@ -162,7 +144,6 @@ const Data = struct {
     }
 
     fn createDeviceObjects(self: *Self) !void {
-        logger.info("createDeviceObjects", .{});
         // Backup GL state
         var last_texture: gl.GLint = undefined;
         gl.getIntegerv(gl.GL_TEXTURE_BINDING_2D, &last_texture);
@@ -204,17 +185,19 @@ const Data = struct {
         else
             try std.fmt.allocPrintZ(self.allocator, "#version {}\n", .{self.glsl_version});
         defer self.allocator.free(glsl_version_string);
+        logger.debug("glsl_version: {s}", .{glsl_version_string});
+
         const vertex_shader_with_version = [_][*:0]const u8{ glsl_version_string, vertex_shader };
         const vert_handle = gl.createShader(gl.GL_VERTEX_SHADER);
         gl.shaderSource(vert_handle, @intCast(u32, vertex_shader_with_version.len), &vertex_shader_with_version[0]);
         gl.compileShader(vert_handle);
-        try checkShader(vert_handle);
+        try checkShader("vs", vert_handle);
 
         const fragment_shader_with_version = [_][*:0]const u8{ glsl_version_string, fragment_shader };
         const frag_handle = gl.createShader(gl.GL_FRAGMENT_SHADER);
         gl.shaderSource(frag_handle, @intCast(u32, fragment_shader_with_version.len), &fragment_shader_with_version[0]);
         gl.compileShader(frag_handle);
-        try checkShader(frag_handle);
+        try checkShader("fs", frag_handle);
 
         // Link
         self.ShaderHandle = gl.createProgram();

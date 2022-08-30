@@ -9,7 +9,7 @@ class Logger {
 
     push(severity, last) {
         this.buffer.push(last);
-        if (last.length > 0 && last[last.length-1] == '\n') {
+        if (last.length > 0 && last[last.length - 1] == '\n') {
             const message = this.buffer.join('');
             this.buffer = [];
             switch (severity) {
@@ -72,7 +72,6 @@ const memToString = (ptr, len) => {
     }
     else {
         // zero terminated
-        let end = ptr;
         let i = 0;
         const buffer = new Uint8Array(getMemory().buffer, ptr);
         for (; i < buffer.length; ++i) {
@@ -84,7 +83,6 @@ const memToString = (ptr, len) => {
     }
     const decoder = new TextDecoder()
     const text = decoder.decode(array)
-    console.debug(`memToString ${len} => ${text}`);
     return text;
 }
 
@@ -152,7 +150,12 @@ var importObject = {
         qsort: (base, num, size, compare) => { },
         //
         __stack_chk_fail: () => { throw ""; },
-        memset: (buf, ch, n) => { memGet(buf, n).fill(ch); },
+        memset: (buf, ch, n) => {
+            const buffer = memGet(buf, n);
+            for (let i = 0; i < buffer.length; ++i) {
+                buffer[i] = ch;
+            }
+        },
         strlen: () => { throw ""; },
         memcpy: (dest, src, n) => {
             const d = memGet(dest, n);
@@ -165,10 +168,10 @@ var importObject = {
         strncpy: () => { throw ""; },
         memchr: () => { throw ""; },
         memmove: () => { throw ""; },
-        vsnprintf: (s, n, format, arg) => {
-            const fmt = memToString(format);
-            throw "";
-        },
+        // vsnprintf: (s, n, format, arg) => {
+        //     const fmt = memToString(format);
+        //     throw "";
+        // },
         fopen: () => { throw ""; },
         fclose: () => { throw ""; },
         ftell: () => { throw ""; },
@@ -235,7 +238,22 @@ var importObject = {
         compileShader: (shader) => gl.compileShader(glShaders[shader]),
         getShaderiv: (shader, pname, params) => {
             const param = gl.getShaderParameter(glShaders[shader], pname);
-            getMemory().setUint32(params, param, true);
+            if (pname == gl.COMPILE_STATUS) {
+                if (param) {
+                    // gl.GL_TRUE
+                    getMemory().setUint32(params, 1, true);
+                }
+                else {
+                    // gl.GL_TRUE
+                    getMemory().setUint32(params, 0, true);
+                }
+            }
+            else if (Number.isInteger(param)) {
+                getMemory().setUint32(params, param, true);
+            }
+            else {
+                console.warn(`getShaderParameter ${pname}: ${param}`);
+            }
         },
         getShaderInfoLog: (shader, maxLength, length, infoLog) => {
             const message = gl.getShaderInfoLog(glShaders[shader]);
@@ -255,8 +273,21 @@ var importObject = {
         linkProgram: (program) => gl.linkProgram(glPrograms[program]),
         getProgramiv: (program, pname, params) => {
             const param = gl.getProgramParameter(glPrograms[program], pname);
-            if (Number.isInteger(param)) {
+            if (pname == gl.LINK_STATUS) {
+                if (param) {
+                    // gl.GL_TRUE
+                    getMemory().setUint32(params, 1, true);
+                }
+                else {
+                    // gl.GL_TRUE
+                    getMemory().setUint32(params, 0, true);
+                }
+            }
+            else if (Number.isInteger(param)) {
                 getMemory().setUint32(params, param);
+            }
+            else {
+                console.warn(`getProgramParameter ${pname}: ${param}`);
             }
         },
         getProgramInfoLog: (program, maxLength, length, infoLog) => {
