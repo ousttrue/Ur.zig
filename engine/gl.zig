@@ -62,10 +62,21 @@ pub const GL_ACTIVE_TEXTURE = 0x84E0;
 pub const GL_CURRENT_PROGRAM = 0x8B8D;
 pub const GL_STREAM_DRAW = 0x88E0;
 pub const GL_UNSIGNED_SHORT = 0x1403;
+pub const GL_SAMPLER_BINDING = 0x8919;
+pub const GL_POLYGON_MODE = 0x0B40;
+pub const GL_VIEWPORT = 0x0BA2;
+pub const GL_SCISSOR_BOX = 0x0C10;
+pub const GL_BLEND_DST_RGB = 0x80C8;
+pub const GL_BLEND_SRC_RGB = 0x80C9;
+pub const GL_BLEND_DST_ALPHA = 0x80CA;
+pub const GL_BLEND_SRC_ALPHA = 0x80CB;
+pub const GL_BLEND_EQUATION_RGB = 0x8009;
+pub const GL_BLEND_EQUATION_ALPHA = 0x883D;
 
 // [wasm] inject WebGL when instanciate by importObject
 // [desktop] inject OpenGL when link with glad_placeholders.c
 pub extern fn getString(name: GLenum) [*:0]const u8;
+pub extern fn isEnabled(cap: GLenum) GLboolean;
 pub extern fn viewport(x: GLint, y: GLint, width: GLsizei, height: GLsizei) void;
 pub extern fn scissor(x: GLint, y: GLint, width: GLsizei, height: GLsizei) void;
 pub extern fn clearColor(red: GLfloat, green: GLfloat, blue: GLfloat, alpha: GLfloat) void;
@@ -97,6 +108,7 @@ pub extern fn drawArrays(mode: GLenum, first: GLint, count: GLsizei) void;
 pub extern fn drawElements(mode: GLenum, count: GLsizei, type: GLenum, offset: GLsizeiptr) void;
 pub extern fn getIntegerv(pname: GLenum, data: *GLint) void;
 pub extern fn bindTexture(target: GLenum, texture: GLuint) void;
+pub extern fn texImage2D(target: GLenum, level: GLint, internalFormat: GLint, width: GLsizei, height: GLsizei, border: GLint, format: GLenum, type: GLenum, data: *const anyopaque) void;
 pub extern fn activeTexture(texture: GLenum) void;
 pub extern fn genTextures(n: GLsizei, textures: *GLuint) void;
 pub extern fn texParameteri(target: GLenum, pname: GLenum, param: GLint) void;
@@ -108,3 +120,4 @@ pub extern fn enable(cap: GLenum) void;
 pub extern fn disable(cap: GLenum) void;
 pub extern fn blendEquation(mode: GLenum) void;
 pub extern fn blendFuncSeparate(srcRGB: GLenum, dstRGB: GLenum, srcAlpha: GLenum, dstAlpha: GLenum) void;
+pub extern fn blendEquationSeparate(modeRGB: GLenum, modeAlpha: GLenum) void;

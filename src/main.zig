@@ -9,7 +9,7 @@ pub fn main() anyerror!void {
     defer c.glfwTerminate();
 
     // Create a windowed mode window and its OpenGL context
-    const window = c.glfwCreateWindow(640, 480, "Hello World", null, null);
+    const window = c.glfwCreateWindow(1024, 768, "Ur.zig", null, null);
     std.debug.assert(window != null);
     defer c.glfwDestroyWindow(window);
 
@@ -21,17 +21,17 @@ pub fn main() anyerror!void {
 
     // Loop until the user closes the window
     while (c.glfwWindowShouldClose(window) == 0) {
+        // Poll for and process events
+        c.glfwPollEvents();
+
         var width: c_int = undefined;
         var height: c_int = undefined;
         c.glfwGetFramebufferSize(window, &width, &height);
-        // ratio = width / (float) height;
 
         // Render here
         engine.render(width, height);
 
         // Swap front and back buffers
         c.glfwSwapBuffers(window);
-        // Poll for and process events
-        c.glfwPollEvents();
     }
 }

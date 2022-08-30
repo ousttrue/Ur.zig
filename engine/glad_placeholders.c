@@ -1,5 +1,7 @@
 #include <glad/glad.h>
 
+GLboolean isEnabled(GLenum cap) { return glad_glIsEnabled(cap); }
+
 const GLubyte *getString(GLenum name) { return glad_glGetString(name); }
 
 void viewport(GLint x, GLint y, GLsizei width, GLsizei height) {
@@ -114,6 +116,13 @@ void bindTexture(GLenum target, GLuint texture) {
   glad_glBindTexture(target, texture);
 }
 
+void texImage2D(GLenum target, GLint level, GLint internalFormat,
+                  GLsizei width, GLsizei height, GLint border, GLenum format,
+                  GLenum type, const GLvoid *data) {
+  glad_glTexImage2D(target, level, internalFormat, width, height, border,
+                    format, type, data);
+}
+
 void activeTexture(GLenum texture) { glad_glActiveTexture(texture); }
 
 void genTextures(GLsizei n, GLuint *textures) {
@@ -143,6 +152,9 @@ void disable(GLenum cap) { glDisable(cap); }
 void blendEquation(GLenum mode) { glad_glBlendEquation(mode); }
 void blendFuncSeparate(GLenum srcRGB, GLenum dstRGB, GLenum srcAlpha,
                        GLenum dstAlpha) {
-
   glad_glBlendFuncSeparate(srcRGB, dstRGB, srcAlpha, dstAlpha);
+}
+
+void blendEquationSeparate(GLenum modeRGB, GLenum modeAlpha) {
+  glad_glBlendEquationSeparate(modeRGB, modeAlpha);
 }
