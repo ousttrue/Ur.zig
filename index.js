@@ -1,3 +1,39 @@
+class Logger {
+    constructor() {
+        this.buffer = [];
+    }
+
+    logger(severity, ptr, len) {
+        this.push(severity, memToString(ptr, len));
+    }
+
+    push(severity, last) {
+        this.buffer.push(last);
+        if (last.length > 0 && last[last.length-1] == '\n') {
+            const message = this.buffer.join('');
+            this.buffer = [];
+            switch (severity) {
+                case 0:
+                    console.error(message);
+                    break;
+
+                case 1:
+                    console.warn(message);
+                    break;
+
+                case 2:
+                    console.info(message);
+                    break;
+
+                default:
+                    console.debug(message);
+                    break;
+            }
+        }
+    }
+}
+const g_logger = new Logger();
+
 const canvas = document.querySelector("#gl");
 const webglOptions = {
     alpha: true, //Boolean that indicates if the canvas contains an alpha buffer.
@@ -112,9 +148,7 @@ var importObject = {
     },
     // https://developer.mozilla.org/en-US/docs/Web/API/WebGLRenderingContext
     env: {
-        imported_func: function (ptr, len) {
-            console.log(memToString(ptr, len));
-        },
+        console_logger: (level, ptr, len) => g_logger.logger(level, ptr, len),
         qsort: (base, num, size, compare) => { },
         //
         __stack_chk_fail: () => { throw ""; },

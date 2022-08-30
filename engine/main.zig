@@ -4,7 +4,14 @@ const Ur = @import("./Ur.zig");
 const logger = std.log.scoped(.main);
 pub const gl = @import("./gl.zig");
 
-pub extern fn imported_func(ptr: *const u8, size: c_int) void;
+pub extern fn console_logger(level: c_int, ptr: *const u8, size: c_int) void;
+
+fn extern_write(level: c_int, m: []const u8) error{}!usize {
+    if (m.len > 0) {
+        console_logger(level, &m[0], @intCast(c_int, m.len));
+    }
+    return m.len;
+}
 
 pub fn log(
     comptime message_level: std.log.Level,
@@ -13,11 +20,20 @@ pub fn log(
     args: anytype,
 ) void {
     if (builtin.target.cpu.arch == .wasm32) {
-        // const message = std.fmt.allocPrint(allocator, "{s}> " ++ format, .{@tagName(scope)} ++ args) catch {
-        //     @panic("log");
-        // };
-        // defer allocator.free(message);
-        imported_func(&format[0], @intCast(c_int, format.len));
+        const level = switch (message_level) {
+            .err => 0,
+            .warn => 1,
+            .info => 2,
+            .debug => 3,
+        };
+        const w = std.io.Writer(c_int, error{}, extern_write){
+            .context = level,
+        };
+        w.print(format, args) catch |err| {
+            const err_name = @errorName(err);
+            extern_write(0, err_name) catch unreachable;
+        };
+        _ = extern_write(level, "\n") catch unreachable;
     } else {
         std.log.defaultLog(message_level, scope, format, args);
     }
