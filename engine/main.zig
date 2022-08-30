@@ -4,10 +4,64 @@ const Ur = @import("./Ur.zig");
 const logger = std.log.scoped(.main);
 pub const gl = @import("./gl.zig");
 
+pub fn log(
+    comptime message_level: std.log.Level,
+    comptime scope: @Type(.EnumLiteral),
+    comptime format: []const u8,
+    args: anytype,
+) void {
+    _ = message_level;
+    _ = scope;
+    _ = format;
+    _ = args;
+
+    // const allocator = std.heap.page_allocator;
+    // const message = std.fmt.allocPrint(allocator, "{s}> " ++ format, .{@tagName(scope)} ++ args) catch {
+    //     std.debug.print("Failed to allocPrint message.\n", .{});
+    //     return;
+    // };
+    // defer allocator.free(message);
+}
+
 var global_string: [1024]u8 = undefined;
 
 pub export fn getGlobalAddress() *u8 {
     return &global_string[0];
+}
+
+var gpa: std.heap.GeneralPurposeAllocator(.{}) = undefined;
+var allocator: std.mem.Allocator = undefined;
+var map: std.AutoHashMap([*]u8, usize) = undefined;
+
+pub export fn init() void {
+    gpa = std.heap.GeneralPurposeAllocator(.{}){};
+    allocator = gpa.allocator();
+    map = std.AutoHashMap([*]u8, usize).init(allocator);
+}
+
+pub export fn deinit() void {
+    map.deinit();
+    std.debug.assert(!gpa.deinit());
+}
+
+pub export fn my_malloc(size: u32) *u8 {
+    const buffer = allocator.alloc(u8, size) catch {
+        @panic("malloc");
+    };
+    var p = &buffer[0];
+    map.put(@ptrCast([*]u8, p), buffer.len) catch {
+        @panic("malloc put");
+    };
+    return p;
+}
+
+pub export fn my_free(ptr: [*]u8) void {
+    if (map.get(ptr)) |size| {
+        const buffer = ptr[0..size];
+        allocator.free(buffer);
+    } else {
+        @panic("free");
+    }
 }
 
 // init OpenGL by glad

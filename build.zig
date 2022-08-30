@@ -84,6 +84,10 @@ const IMGUI_SOURCES = [_][]const u8{
     "pkgs/imgui/src/imvec2_byvalue.cpp",
     "pkgs/imgui/src/internal.cpp",
 };
+const IMGUI_FLAGS = [_][]const u8{
+    "-DIMGUI_USE_STB_SPRINTF",
+};
+const STB_BASE = "_external/stb";
 
 pub fn build(b: *std.build.Builder) void {
     allocator = std.heap.page_allocator;
@@ -106,15 +110,14 @@ pub fn build(b: *std.build.Builder) void {
         dll.linkSystemLibrary("OpenGL32");
     }
     // imgui
-    dll.linkLibCpp();
     dll.addPackage(imgui_pkg);
     dll.addIncludePath(IMGUI_BASE);
-    for(IMGUI_SOURCES)|s|
-    {
-        dll.addCSourceFile(s, &.{});
-    }
+    dll.addIncludePath(STB_BASE);
+    dll.addCSourceFiles(&IMGUI_SOURCES, &IMGUI_FLAGS);
+    // dll.addCSourceFile("_external/stb_build.c", &.{});
 
     if (target.cpu_arch != std.Target.Cpu.Arch.wasm32) {
+        dll.linkLibCpp();
         // glad
         dll.addIncludePath(GLAD_BASE ++ "/include");
         dll.addCSourceFile(GLAD_BASE ++ "/src/glad.c", &.{});

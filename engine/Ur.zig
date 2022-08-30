@@ -114,7 +114,7 @@ pub fn render(self: *Self, width: i32, height: i32) void {
         //     imgui.ShowDemoWindow(.{ .p_open = &self.show_demo_window });
 
         // Rendering
-        // imgui.Render();
+        imgui.Render();
     }
 
     gl.viewport(0, 0, width, height);
@@ -132,7 +132,9 @@ pub fn render(self: *Self, width: i32, height: i32) void {
     gl.uniformMatrix4fv(@intCast(c_int, self.mvp_location), 1, gl.GL_FALSE, &mvp[0]);
     gl.drawArrays(gl.GL_TRIANGLES, 0, 3);
 
-    imgui_opengl_backend.renderDrawData(imgui.GetDrawData().?) catch |err| {
-        logger.err("{}", .{err});
-    };
+    if (imgui.GetDrawData()) |data| {
+        imgui_opengl_backend.renderDrawData(data) catch |err| {
+            logger.err("{}", .{err});
+        };
+    }
 }

@@ -27,10 +27,12 @@ const glUniformLocations = [];
 
 const getMemory = () => new DataView(instance.exports.memory.buffer);
 
+const memGet = (ptr, len) => new Uint8Array(getMemory().buffer, ptr, len);
+
 const memToString = (ptr, len) => {
     let array = null;
     if (len) {
-        array = new Uint8Array(getMemory().buffer, ptr, len)
+        array = memGet(ptr, len);
     }
     else {
         // zero terminated
@@ -116,6 +118,42 @@ var importObject = {
     // https://developer.mozilla.org/en-US/docs/Web/API/WebGLRenderingContext
     env: {
         qsort: (base, num, size, compare) => { },
+        //
+        __stack_chk_fail: () => { throw ""; },
+        memset: (buf, ch, n) => { memGet(buf, n).fill(ch); },
+        strlen: () => { throw ""; },
+        memcpy: (dest, src, n) => {
+            const d = memGet(dest, n);
+            const s = memGet(src, n);
+            for (let i = 0; i < n; ++i) {
+                d[i] = s[i];
+            }
+        },
+        __assert_fail: () => { throw ""; },
+        strncpy: () => { throw ""; },
+        memchr: () => { throw ""; },
+        memmove: () => { throw ""; },
+        vsnprintf: (s, n, format, arg) => { 
+            const fmt = memToString(format);
+            throw ""; 
+        },
+        fopen: () => { throw ""; },
+        fclose: () => { throw ""; },
+        ftell: () => { throw ""; },
+        fseek: () => { throw ""; },
+        fread: () => { throw ""; },
+        fwrite: () => { throw ""; },
+        qsort: () => { throw ""; },
+        strcmp: () => { throw ""; },
+        sscanf: () => { throw ""; },
+        memcmp: () => { throw ""; },
+        fflush: () => { throw ""; },
+        strstr: () => { throw ""; },
+        strncmp: () => { throw ""; },
+        printf: () => { throw ""; },
+        malloc: (size) => instance.exports.malloc(size),
+        free: (ptr) => instance.exports.free(ptr),
+        acosf: () => { throw ""; },
         //
         getString: (name) => {
             const param = gl.getParameter(name);
@@ -275,6 +313,7 @@ const instance = await WebAssembly.instantiate(compiled, importObject);
 console.log(instance);
 
 // call
+instance.exports.init();
 function step(timestamp) {
     const w = canvas.clientWidth;
     const h = canvas.clientHeight;
