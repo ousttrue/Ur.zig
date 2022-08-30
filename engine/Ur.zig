@@ -51,11 +51,6 @@ vpos_location: gl.GLuint = undefined,
 vcol_location: gl.GLuint = undefined,
 show_demo_window: bool = true,
 
-// wasi
-pub export fn main(_: c_int, _: **u8) c_int {
-    return 0;
-}
-
 pub fn init(allocator: std.mem.Allocator) !Self {
     var self = Self{};
 
@@ -101,19 +96,21 @@ pub fn deinit(self: *Self) void {
 }
 
 pub fn render(self: *Self, width: i32, height: i32) !void {
-    // update input
-    var io = imgui.GetIO();
-    io.DisplaySize = .{ .x = @intToFloat(f32, width), .y = @intToFloat(f32, height) };
+    {
+        // update input
+        var io = imgui.GetIO();
+        io.DisplaySize = .{ .x = @intToFloat(f32, width), .y = @intToFloat(f32, height) };
 
-    try imgui_opengl_backend.newFrame();
-    imgui.NewFrame();
+        try imgui_opengl_backend.newFrame();
+        imgui.NewFrame();
 
-    // 1. Show the big demo window (Most of the sample code is in imgui.ShowDemoWindow()! You can browse its code to learn more about Dear ImGui!).
-    if (self.show_demo_window)
-        imgui.ShowDemoWindow(.{ .p_open = &self.show_demo_window });
+        // 1. Show the big demo window (Most of the sample code is in imgui.ShowDemoWindow()! You can browse its code to learn more about Dear ImGui!).
+        if (self.show_demo_window)
+            imgui.ShowDemoWindow(.{ .p_open = &self.show_demo_window });
 
-    // Rendering
-    imgui.Render();
+        // Rendering
+        imgui.Render();
+    }
 
     gl.viewport(0, 0, width, height);
     gl.clearColor(0.2, 0.5, 0.2, 1);
@@ -130,5 +127,5 @@ pub fn render(self: *Self, width: i32, height: i32) !void {
     gl.uniformMatrix4fv(@intCast(c_int, self.mvp_location), 1, gl.GL_FALSE, &mvp[0]);
     gl.drawArrays(gl.GL_TRIANGLES, 0, 3);
 
-    imgui_opengl_backend.renderDrawData(imgui.GetDrawData().?);
+    // imgui_opengl_backend.renderDrawData(imgui.GetDrawData().?);
 }
