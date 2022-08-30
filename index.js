@@ -72,11 +72,6 @@ const memSetString = (dstPtr, maxLength, length, src) => {
 }
 
 var importObject = {
-    imports: {
-        imported_func: function (arg) {
-            console.log(arg);
-        }
-    },
     // https://github.com/ziglang/zig/blob/master/lib/std/os/wasi.zig
     wasi_snapshot_preview1: {
         args_get: (argv, argv_buf) => 0,
@@ -117,6 +112,9 @@ var importObject = {
     },
     // https://developer.mozilla.org/en-US/docs/Web/API/WebGLRenderingContext
     env: {
+        imported_func: function (ptr, len) {
+            console.log(memToString(ptr, len));
+        },
         qsort: (base, num, size, compare) => { },
         //
         __stack_chk_fail: () => { throw ""; },
@@ -133,9 +131,9 @@ var importObject = {
         strncpy: () => { throw ""; },
         memchr: () => { throw ""; },
         memmove: () => { throw ""; },
-        vsnprintf: (s, n, format, arg) => { 
+        vsnprintf: (s, n, format, arg) => {
             const fmt = memToString(format);
-            throw ""; 
+            throw "";
         },
         fopen: () => { throw ""; },
         fclose: () => { throw ""; },
@@ -151,8 +149,8 @@ var importObject = {
         strstr: () => { throw ""; },
         strncmp: () => { throw ""; },
         printf: () => { throw ""; },
-        malloc: (size) => instance.exports.malloc(size),
-        free: (ptr) => instance.exports.free(ptr),
+        malloc: (size) => instance.exports.my_malloc(size),
+        free: (ptr) => instance.exports.my_free(ptr),
         acosf: () => { throw ""; },
         //
         getString: (name) => {

@@ -85,6 +85,7 @@ const IMGUI_SOURCES = [_][]const u8{
     "pkgs/imgui/src/internal.cpp",
 };
 const IMGUI_FLAGS = [_][]const u8{
+    // "-DIMGUI_DISABLE_DEFAULT_FORMAT_FUNCTIONS",
     "-DIMGUI_USE_STB_SPRINTF",
 };
 const STB_BASE = "_external/stb";

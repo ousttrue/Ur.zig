@@ -81,7 +81,7 @@ pub fn init(allocator: std.mem.Allocator) !Self {
     _ = imgui.CreateContext(.{});
     var io = imgui.GetIO();
     _ = io;
-    _ = io.Fonts.?.AddFontDefault(.{});
+    // _ = io.Fonts.?.AddFontDefault(.{});
 
     try imgui_opengl_backend.init(allocator, glsl_version);
 

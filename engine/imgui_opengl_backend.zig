@@ -128,6 +128,7 @@ const Data = struct {
     }
 
     fn createFontsTexture(self: *Self) bool {
+        logger.info("createFontsTexture", .{});
         var io = imgui.GetIO();
 
         // Build texture atlas
@@ -161,6 +162,7 @@ const Data = struct {
     }
 
     fn createDeviceObjects(self: *Self) !void {
+        logger.info("createDeviceObjects", .{});
         // Backup GL state
         var last_texture: gl.GLint = undefined;
         gl.getIntegerv(gl.GL_TEXTURE_BINDING_2D, &last_texture);

@@ -4,23 +4,23 @@ const Ur = @import("./Ur.zig");
 const logger = std.log.scoped(.main);
 pub const gl = @import("./gl.zig");
 
+pub extern fn imported_func(ptr: *const u8, size: c_int) void;
+
 pub fn log(
     comptime message_level: std.log.Level,
     comptime scope: @Type(.EnumLiteral),
     comptime format: []const u8,
     args: anytype,
 ) void {
-    _ = message_level;
-    _ = scope;
-    _ = format;
-    _ = args;
-
-    // const allocator = std.heap.page_allocator;
-    // const message = std.fmt.allocPrint(allocator, "{s}> " ++ format, .{@tagName(scope)} ++ args) catch {
-    //     std.debug.print("Failed to allocPrint message.\n", .{});
-    //     return;
-    // };
-    // defer allocator.free(message);
+    if (builtin.target.cpu.arch == .wasm32) {
+        // const message = std.fmt.allocPrint(allocator, "{s}> " ++ format, .{@tagName(scope)} ++ args) catch {
+        //     @panic("log");
+        // };
+        // defer allocator.free(message);
+        imported_func(&format[0], @intCast(c_int, format.len));
+    } else {
+        std.log.defaultLog(message_level, scope, format, args);
+    }
 }
 
 var global_string: [1024]u8 = undefined;
@@ -34,6 +34,7 @@ var allocator: std.mem.Allocator = undefined;
 var map: std.AutoHashMap([*]u8, usize) = undefined;
 
 pub export fn init() void {
+    logger.info("init", .{});
     gpa = std.heap.GeneralPurposeAllocator(.{}){};
     allocator = gpa.allocator();
     map = std.AutoHashMap([*]u8, usize).init(allocator);
