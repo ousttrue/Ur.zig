@@ -139,7 +139,6 @@ const Data = struct {
         gl.texParameteri(gl.GL_TEXTURE_2D, gl.GL_TEXTURE_MIN_FILTER, gl.GL_LINEAR);
         gl.texParameteri(gl.GL_TEXTURE_2D, gl.GL_TEXTURE_MAG_FILTER, gl.GL_LINEAR);
         if (builtin.target.cpu.arch != .wasm32) {
-            // #ifdef GL_UNPACK_ROW_LENGTH // Not on WebGL/ES
             gl.pixelStorei(gl.GL_UNPACK_ROW_LENGTH, 0);
         }
         gl.texImage2D(gl.GL_TEXTURE_2D, 0, gl.GL_RGBA, width, height, 0, gl.GL_RGBA, gl.GL_UNSIGNED_BYTE, pixels);
@@ -255,8 +254,8 @@ const Data = struct {
         //     0;
         const last_array_buffer = getCurrentID(gl.GL_ARRAY_BUFFER_BINDING);
         const last_vertex_array_object = getCurrentID(gl.GL_VERTEX_ARRAY_BINDING);
-        var last_polygon_mode: [2]gl.GLint = undefined;
-        gl.getIntegerv(gl.GL_POLYGON_MODE, &last_polygon_mode[0]);
+        // var last_polygon_mode: [2]gl.GLint = undefined;
+        // gl.getIntegerv(gl.GL_POLYGON_MODE, &last_polygon_mode[0]);
         var last_viewport: [4]gl.GLint = undefined;
         gl.getIntegerv(gl.GL_VIEWPORT, &last_viewport[0]);
         var last_scissor_box: [4]gl.GLint = undefined;

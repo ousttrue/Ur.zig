@@ -106,9 +106,18 @@ const memSetString = (dstPtr, maxLength, length, src) => {
     }
     const write_length = Math.min(buffer.len, maxLength);
     if (length) {
-        getMemory().setUint32(length, write_length);
+        getMemory().setUint32(length, write_length, true);
     }
     return write_length;
+}
+
+const getPname = (pname) => {
+    for (let k in gl) {
+        if (gl[k] == pname) {
+            return k;
+        }
+    }
+    console.error(pname);
 }
 
 var importObject = {
@@ -300,7 +309,7 @@ var importObject = {
                 memSetString(infoLog, maxLength, length, message);
             }
             else {
-                getMemory().setUint32(length, 0);
+                getMemory().setUint32(length, 0, true);
             }
         },
         createProgram: () => {
@@ -347,7 +356,7 @@ var importObject = {
                 }
             }
             else if (Number.isInteger(param)) {
-                getMemory().setUint32(params, param);
+                getMemory().setUint32(params, param, true);
             }
             else {
                 console.warn(`getProgramParameter ${pname}: ${param}`);
@@ -362,7 +371,7 @@ var importObject = {
                 memSetString(infoLog, maxLength, length, message);
             }
             else {
-                getMemory().setUint32(length, 0);
+                getMemory().setUint32(length, 0, true);
             }
         },
         getUniformLocation: (program, name) => {
@@ -399,18 +408,24 @@ var importObject = {
         },
         getIntegerv: (pname, data) => {
             const param = gl.getParameter(pname);
-            if (param instanceof Int32Array) {
-                const buffer = new Int32Array(getMemory().buffer, data, param.length);
-                for (let i = 0; i < buffer.length; ++i) {
-                    buffer[i] = param[i];
+            if (gl.getError() == gl.NO_ERROR) {
+                if (param instanceof Int32Array) {
+                    const buffer = new Int32Array(getMemory().buffer, data, param.length);
+                    for (let i = 0; i < buffer.length; ++i) {
+                        buffer[i] = param[i];
+                    }
+                    // console.log(`${pname} => ${buffer}`);
                 }
-                // console.log(`${pname} => ${buffer}`);
-            }
-            else if (Number.isInteger(param)) {
-                getMemory().setUint32(data, param);
+                else if (Number.isInteger(param)) {
+                    getMemory().setUint32(data, param, true);
+                }
+                else {
+                    console.log(`unknown param type: ${getPname(pname)} ${typeof (param)}`);
+                    getMemory().setUint32(data, -1, true);
+                }
             }
             else {
-                getMemory().setUint32(data, -1);
+                console.warn(`unknown param: ${getPname(pname)}`);
             }
         },
         bindTexture: (target, texture) => {
@@ -435,10 +450,9 @@ var importObject = {
         },
         activeTexture: (texture) => gl.activeTexture(texture),
         genTextures: (n, textures) => {
-            let ptr = textures;
-            for (let i = 0; i < n; ++i, ptr += 4) {
+            for (let i = 0; i < n; ++i, textures += 4) {
                 glTextures.push(gl.createTexture());
-                getMemory().setUint32(ptr, glTextures.length);
+                getMemory().setUint32(textures, glTextures.length, true);
             }
         },
         texParameteri: (target, pname, param) => gl.texParameteri(target, pname, param),
@@ -447,12 +461,12 @@ var importObject = {
             let ptr = arrays;
             for (let i = 0; i < n; ++i, ptr += 4) {
                 glVertexArrays.push(gl.createVertexArray());
-                getMemory().setUint32(ptr, glVertexArrays.length);
+                getMemory().setUint32(ptr, glVertexArrays.length, true);
             }
         },
         deleteVertexArrays: (n, array) => {
             for (let i = 0; i < n; ++i, array += 4) {
-                const index = getMemory().getUint32(array);
+                const index = getMemory().getUint32(array, true);
                 gl.deleteVertexArray(glVertexArrays[index - 1]);
             }
         },
