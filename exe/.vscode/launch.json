@@ -8,14 +8,14 @@
             "name": "(Windows) Launch",
             "type": "cppvsdbg",
             "request": "launch",
-            "program": "${workspaceFolder}/zig-out/bin/glfw.exe",
+            "program": "${workspaceFolder}/zig-out/bin/exe.exe",
             "args": [],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}",
             "environment": [
                 {
                     "name": "PATH",
-                    "value": "${workspaceFolder}\\zig-out\\lib;${workspaceFolder}\\build\\src\\Debug;${env:PATH}"
+                    "value": "..\\zig-out\\lib;build\\src\\Debug;${env:PATH}"
                 }
             ],
             "console": "integratedTerminal"
