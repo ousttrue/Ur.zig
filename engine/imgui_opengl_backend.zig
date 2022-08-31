@@ -157,12 +157,8 @@ const Data = struct {
     fn createDeviceObjects(self: *Self) !void {
         // Backup GL state
         const last_texture = getCurrentID(gl.GL_TEXTURE_BINDING_2D);
-
-        var last_array_buffer: gl.GLint = undefined;
-        gl.getIntegerv(gl.GL_ARRAY_BUFFER_BINDING, &last_array_buffer);
-
-        var last_vertex_array: gl.GLint = undefined;
-        gl.getIntegerv(gl.GL_VERTEX_ARRAY_BINDING, &last_vertex_array);
+        const last_array_buffer = getCurrentID(gl.GL_ARRAY_BUFFER_BINDING);
+        const last_vertex_array = getCurrentID(gl.GL_VERTEX_ARRAY_BINDING);
 
         const vertex_shader_glsl_120: [:0]const u8 = @embedFile("./imgui_120.vs");
         const vertex_shader_glsl_130: [:0]const u8 = @embedFile("./imgui_130.vs");
@@ -251,22 +247,16 @@ const Data = struct {
             return;
 
         // Backup GL state
-        var last_active_texture: gl.GLint = undefined;
-        gl.getIntegerv(gl.GL_ACTIVE_TEXTURE, &last_active_texture);
+        const last_active_texture = getCurrentID(gl.GL_ACTIVE_TEXTURE);
         gl.activeTexture(gl.GL_TEXTURE0);
-        var last_program: gl.GLint = undefined;
-        gl.getIntegerv(gl.GL_CURRENT_PROGRAM, &last_program);
+        const last_program = getCurrentID(gl.GL_CURRENT_PROGRAM);
         const last_texture = getCurrentID(gl.GL_TEXTURE_BINDING_2D);
-        var last_sampler: gl.GLint = undefined;
-        if (self.GlVersion >= 330) {
-            gl.getIntegerv(gl.GL_SAMPLER_BINDING, &last_sampler);
-        } else {
-            last_sampler = 0;
-        }
-        var last_array_buffer: gl.GLint = undefined;
-        gl.getIntegerv(gl.GL_ARRAY_BUFFER_BINDING, &last_array_buffer);
-        var last_vertex_array_object: gl.GLint = undefined;
-        gl.getIntegerv(gl.GL_VERTEX_ARRAY_BINDING, &last_vertex_array_object);
+        // const last_sampler: gl.GLuint = if (self.GlVersion >= 330)
+        //     getCurrentID(gl.GL_SAMPLER_BINDING)
+        // else
+        //     0;
+        const last_array_buffer = getCurrentID(gl.GL_ARRAY_BUFFER_BINDING);
+        const last_vertex_array_object = getCurrentID(gl.GL_VERTEX_ARRAY_BINDING);
         var last_polygon_mode: [2]gl.GLint = undefined;
         gl.getIntegerv(gl.GL_POLYGON_MODE, &last_polygon_mode[0]);
         var last_viewport: [4]gl.GLint = undefined;
