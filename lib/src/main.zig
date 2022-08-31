@@ -112,6 +112,12 @@ pub export fn loadproc(ptr: *const anyopaque) void {
 //     return 0;
 // }
 
+var global_input: FrameInput = .{};
+
+pub export fn getGlobalInput() *anyopaque {
+    return &global_input;
+}
+
 var ur: ?Ur = null;
 pub export fn render(input: *const FrameInput) void {
     if (ur == null) {

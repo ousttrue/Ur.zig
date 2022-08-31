@@ -10,5 +10,7 @@
 			"path": "exe"
 		}
 	],
-	"settings": {}
+	"settings": {
+		"liveServer.settings.multiRootWorkspaceName": "lib"
+	}
 }

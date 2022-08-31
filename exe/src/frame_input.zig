@@ -23,6 +23,10 @@ pub const FrameInput = extern struct {
     height: c_int = 1,
     cursor_x: f32 = 0,
     cursor_y: f32 = 0,
-    flags: Flags = .{},
     wheel: c_int = 0,
+    flags: Flags = .{},
+
+    comptime {
+        std.debug.assert(@sizeOf(@This()) == 28);
+    }
 };
