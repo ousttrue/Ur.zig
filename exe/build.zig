@@ -79,6 +79,7 @@ pub fn build(b: *std.build.Builder) void {
     exe.setTarget(target);
     exe.setBuildMode(mode);
     exe.addPackage(c_pkg);
+    exe.linkLibC();
 
     // glfw
     const cmake_step = b.step("cmake", "build glfw");
