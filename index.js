@@ -54,12 +54,14 @@ if (gl === null) {
     throw "WebGL を初期化できません。ブラウザーまたはマシンが対応していない可能性があります。";
 }
 
-const glShaders = [];
-const glPrograms = [];
 const glVertexArrays = [];
+// 0origin
+const glUniformLocations = [];
+// 1origin
+const glPrograms = [];
+const glShaders = [];
 const glBuffers = [];
 const glTextures = [];
-const glUniformLocations = [];
 
 const getMemory = () => new DataView(instance.exports.memory.buffer);
 
@@ -211,10 +213,17 @@ var importObject = {
         genBuffers: (num, dataPtr) => {
             for (let n = 0; n < num; n++, dataPtr += 4) {
                 glBuffers.push(gl.createBuffer());
-                getMemory().setUint32(dataPtr, glBuffers.length - 1, true);
+                getMemory().setUint32(dataPtr, glBuffers.length, true);
             }
         },
-        bindBuffer: (type, bufferId) => gl.bindBuffer(type, glBuffers[bufferId]),
+        bindBuffer: (type, bufferId) => {
+            if (bufferId > 0) {
+                gl.bindBuffer(type, glBuffers[bufferId - 1]);
+            }
+            else {
+                gl.bindBuffer(type, null);
+            }
+        },
         bufferData: (type, count, dataPtr, drawType) => {
             const data = new Uint8Array(getMemory().buffer, Number(dataPtr), Number(count));
             gl.bufferData(type, data, drawType);
@@ -225,23 +234,36 @@ var importObject = {
         },
         createShader: (shaderType) => {
             glShaders.push(gl.createShader(shaderType));
-            return glShaders.length - 1;
+            return glShaders.length;
         },
         deleteShader: (shader) => {
-            gl.deleteShader(glShaders[shader]);
+            if (shader > 0) {
+                gl.deleteShader(glShaders[shader - 1]);
+            }
         },
         shaderSource: (shader, count, srcs) => {
+            if (shader <= 0) {
+                return;
+            }
             let list = [];
             for (let i = 0; i < count; ++i, srcs += 4) {
                 const p = getMemory().getUint32(srcs, true);
                 const item = memToString(p);
                 list.push(item);
             }
-            gl.shaderSource(glShaders[shader], list.join(""));
+            gl.shaderSource(glShaders[shader - 1], list.join(""));
         },
-        compileShader: (shader) => gl.compileShader(glShaders[shader]),
+        compileShader: (shader) => {
+            if (shader <= 0) {
+                return;
+            }
+            gl.compileShader(glShaders[shader - 1]);
+        },
         getShaderiv: (shader, pname, params) => {
-            const param = gl.getShaderParameter(glShaders[shader], pname);
+            if (shader <= 0) {
+                return;
+            }
+            const param = gl.getShaderParameter(glShaders[shader - 1], pname);
             if (pname == gl.COMPILE_STATUS) {
                 if (param) {
                     // gl.GL_TRUE
@@ -260,7 +282,10 @@ var importObject = {
             }
         },
         getShaderInfoLog: (shader, maxLength, length, infoLog) => {
-            const message = gl.getShaderInfoLog(glShaders[shader]);
+            if (shader <= 0) {
+                return;
+            }
+            const message = gl.getShaderInfoLog(glShaders[shader - 1]);
             if (typeof (message) == "string") {
                 memSetString(infoLog, maxLength, length, message);
             }
@@ -270,13 +295,37 @@ var importObject = {
         },
         createProgram: () => {
             glPrograms.push(gl.createProgram());
-            return glPrograms.length - 1;
+            return glPrograms.length;
         },
-        attachShader: (program, shader) => gl.attachShader(glPrograms[program], glShaders[shader]),
-        detachShader: (program, shader) => gl.detachShader(glPrograms[program], glShaders[shader]),
-        linkProgram: (program) => gl.linkProgram(glPrograms[program]),
+        attachShader: (program, shader) => {
+            if (program <= 0) {
+                return;
+            }
+            if (shader <= 0) {
+                return;
+            }
+            gl.attachShader(glPrograms[program - 1], glShaders[shader - 1]);
+        },
+        detachShader: (program, shader) => {
+            if (program <= 0) {
+                return;
+            }
+            if (shader <= 0) {
+                return;
+            }
+            gl.detachShader(glPrograms[program - 1], glShaders[shader - 1]);
+        },
+        linkProgram: (program) => {
+            if (program <= 0) {
+                return;
+            }
+            gl.linkProgram(glPrograms[program - 1]);
+        },
         getProgramiv: (program, pname, params) => {
-            const param = gl.getProgramParameter(glPrograms[program], pname);
+            if (program <= 0) {
+                return;
+            }
+            const param = gl.getProgramParameter(glPrograms[program - 1], pname);
             if (pname == gl.LINK_STATUS) {
                 if (param) {
                     // gl.GL_TRUE
@@ -295,7 +344,10 @@ var importObject = {
             }
         },
         getProgramInfoLog: (program, maxLength, length, infoLog) => {
-            const message = gl.getProgramInfoLog(glPrograms[program]);
+            if (program <= 0) {
+                return;
+            }
+            const message = gl.getProgramInfoLog(glPrograms[program - 1]);
             if (typeof (message) == "string") {
                 memSetString(infoLog, maxLength, length, message);
             }
@@ -304,17 +356,28 @@ var importObject = {
             }
         },
         getUniformLocation: (program, name) => {
-            glUniformLocations.push(gl.getUniformLocation(glPrograms[program], memToString(name)));
+            if (program <= 0) {
+                return;
+            }
+            glUniformLocations.push(gl.getUniformLocation(glPrograms[program - 1], memToString(name)));
             return glUniformLocations.length - 1;
         },
         getAttribLocation: (program, name) => {
-            return gl.getAttribLocation(glPrograms[program], memToString(name));
+            if (program <= 0) {
+                return;
+            }
+            return gl.getAttribLocation(glPrograms[program - 1], memToString(name));
         },
         enableVertexAttribArray: (index) => gl.enableVertexAttribArray(index),
         vertexAttribPointer: (index, size, type, normalized, stride, offset) => {
             gl.vertexAttribPointer(index, size, type, normalized, stride, Number(offset));
         },
-        useProgram: (program) => gl.useProgram(glPrograms[program]),
+        useProgram: (program) => {
+            if (program <= 0) {
+                return;
+            }
+            gl.useProgram(glPrograms[program - 1]);
+        },
         uniformMatrix4fv: (location, count, transpose, value) => {
             const values = new Float32Array(getMemory().buffer, value, 16 * count);
             gl.uniformMatrix4fv(glUniformLocations[location], count, values, transpose);
@@ -331,9 +394,24 @@ var importObject = {
                 getMemory().setUint32(data, -1);
             }
         },
-        bindTexture: (target, texture) => gl.bindTexture(target, glTextures[texture]),
+        bindTexture: (target, texture) => {
+            if (texture <= 0) {
+                gl.bindTexture(target, null);
+            }
+            else {
+                gl.bindTexture(target, glTextures[texture - 1]);
+            }
+        },
         texImage2D: (target, level, internalFormat, width, height, border, format, type, data) => {
-            const pixels = new Image(width, height);
+            let pixels = null;
+            switch (format) {
+                case gl.RGBA:
+                    pixels = memGet(data, width * height * 4);
+                    break;
+                default:
+                    logger.error(`unknown ${format}`);
+                    break;
+            }
             gl.texImage2D(target, level, internalFormat, width, height, border, format, type, pixels);
         },
         activeTexture: (texture) => gl.activeTexture(texture),
@@ -341,7 +419,7 @@ var importObject = {
             let ptr = textures;
             for (let i = 0; i < n; ++i, ptr += 4) {
                 glTextures.push(gl.createTexture());
-                getMemory().setUint32(ptr, glTextures.length - 1);
+                getMemory().setUint32(ptr, glTextures.length);
             }
         },
         texParameteri: (target, pname, param) => gl.texParameteri(target, pname, param),
@@ -350,7 +428,7 @@ var importObject = {
             let ptr = arrays;
             for (let i = 0; i < n; ++i, ptr += 4) {
                 glVertexArrays.push(gl.createVertexArray());
-                getMemory().setUint32(ptr, glVertexArrays.length - 1);
+                getMemory().setUint32(ptr, glVertexArrays.length);
             }
         },
         deleteVertexArrays: (n, array) => {
@@ -360,7 +438,15 @@ var importObject = {
                 gl.deleteVertexArray(index);
             }
         },
-        bindVertexArray: (array) => gl.bindVertexArray(glVertexArrays[array]),
+        bindVertexArray: (array) => {
+            if (array > 0) {
+                gl.bindVertexArray(glVertexArrays[array-1]);
+            }
+            else {
+                gl.bindVertexArray(null);
+
+            }
+        },
         enable: (cap) => gl.enable(cap),
         disable: (cap) => gl.disable(cap),
         blendEquation: (mode) => gl.blendEquation(mode),

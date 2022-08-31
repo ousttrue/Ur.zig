@@ -106,6 +106,16 @@ const Data = struct {
         return error.programError;
     }
 
+    fn getCurrentTexture() ?gl.GLuint {
+        var val: gl.GLint = undefined;
+        gl.getIntegerv(gl.GL_TEXTURE_BINDING_2D, &val);
+        return if (val > 0)
+            @intCast(gl.GLuint, val)
+        else
+            // ie. -1
+            null;
+    }
+
     fn createFontsTexture(self: *Self) bool {
         var io = imgui.GetIO();
 
@@ -114,15 +124,14 @@ const Data = struct {
             return false;
         };
 
-        var pixels: ?*u8 = undefined;
+        var pixels: *u8 = undefined;
         var width: c_int = undefined;
         var height: c_int = undefined;
-        fonts.GetTexDataAsRGBA32(&pixels, &width, &height, .{}); // Load as RGBA 32-bit (75% of the memory is wasted, but default font is so small) because it is more likely to be compatible with user's existing shaders. If your ImTextureId represent a higher-level concept than just a GL texture id, consider calling GetTexDataAsAlpha8() instead to save on GPU memory.
+        fonts.GetTexDataAsRGBA32(@ptrCast(?*?*u8, &pixels), &width, &height, .{}); // Load as RGBA 32-bit (75% of the memory is wasted, but default font is so small) because it is more likely to be compatible with user's existing shaders. If your ImTextureId represent a higher-level concept than just a GL texture id, consider calling GetTexDataAsAlpha8() instead to save on GPU memory.
 
         // Upload texture to graphics system
         // (Bilinear sampling is required by default. Set 'io.Fonts.Flags |= ImFontAtlasFlags_NoBakedLines' or 'style.AntiAliasedLinesUseTex = false' to allow point/nearest sampling)
-        var last_texture: gl.GLint = undefined;
-        gl.getIntegerv(gl.GL_TEXTURE_BINDING_2D, &last_texture);
+        var last_texture: ?gl.GLuint = getCurrentTexture();
         gl.genTextures(1, &self.FontTexture);
         gl.bindTexture(gl.GL_TEXTURE_2D, self.FontTexture);
         gl.texParameteri(gl.GL_TEXTURE_2D, gl.GL_TEXTURE_MIN_FILTER, gl.GL_LINEAR);
@@ -131,22 +140,22 @@ const Data = struct {
             // #ifdef GL_UNPACK_ROW_LENGTH // Not on WebGL/ES
             gl.pixelStorei(gl.GL_UNPACK_ROW_LENGTH, 0);
         }
-        gl.texImage2D(gl.GL_TEXTURE_2D, 0, gl.GL_RGBA, width, height, 0, gl.GL_RGBA, gl.GL_UNSIGNED_BYTE, pixels.?);
+        gl.texImage2D(gl.GL_TEXTURE_2D, 0, gl.GL_RGBA, width, height, 0, gl.GL_RGBA, gl.GL_UNSIGNED_BYTE, pixels);
 
         // Store our identifier
         // io.Fonts.?.SetTexID(@intToPtr(*anyopaque, self.FontTexture));
         io.Fonts.?.TexID = @intToPtr(*anyopaque, self.FontTexture);
 
         // Restore state
-        gl.bindTexture(gl.GL_TEXTURE_2D, @intCast(c_uint, last_texture));
+        gl.bindTexture(gl.GL_TEXTURE_2D, if (last_texture) |id| id else 0);
 
         return true;
     }
 
     fn createDeviceObjects(self: *Self) !void {
         // Backup GL state
-        var last_texture: gl.GLint = undefined;
-        gl.getIntegerv(gl.GL_TEXTURE_BINDING_2D, &last_texture);
+        const last_texture = getCurrentTexture();
+
         var last_array_buffer: gl.GLint = undefined;
         gl.getIntegerv(gl.GL_ARRAY_BUFFER_BINDING, &last_array_buffer);
 
@@ -224,7 +233,7 @@ const Data = struct {
         _ = self.createFontsTexture();
 
         // Restore modified GL state
-        gl.bindTexture(gl.GL_TEXTURE_2D, @intCast(c_uint, last_texture));
+        gl.bindTexture(gl.GL_TEXTURE_2D, @intCast(c_uint, if (last_texture) |id| id else 0));
         gl.bindBuffer(gl.GL_ARRAY_BUFFER, @intCast(c_uint, last_array_buffer));
 
         gl.bindVertexArray(@intCast(c_uint, last_vertex_array));
