@@ -399,7 +399,7 @@ var importObject = {
         },
         uniformMatrix4fv: (location, count, transpose, value) => {
             const values = new Float32Array(getMemory().buffer, value, 16 * count);
-            gl.uniformMatrix4fv(glUniformLocations[location], count, values, transpose);
+            gl.uniformMatrix4fv(glUniformLocations[location], transpose, values);
         },
         uniform1i: (location, v0) => gl.uniform1i(glUniformLocations[location], v0),
         drawArrays: (mode, first, count) => gl.drawArrays(mode, first, count),
@@ -409,7 +409,10 @@ var importObject = {
         getIntegerv: (pname, data) => {
             const param = gl.getParameter(pname);
             if (gl.getError() == gl.NO_ERROR) {
-                if (param instanceof Int32Array) {
+                if (!param) {
+                    getMemory().setUint32(data, 0, true);
+                }
+                else if (param instanceof Int32Array) {
                     const buffer = new Int32Array(getMemory().buffer, data, param.length);
                     for (let i = 0; i < buffer.length; ++i) {
                         buffer[i] = param[i];
@@ -418,6 +421,15 @@ var importObject = {
                 }
                 else if (Number.isInteger(param)) {
                     getMemory().setUint32(data, param, true);
+                }
+                else if (param instanceof WebGLProgram) {
+                    getMemory().setUint32(data, glPrograms.indexOf(param) + 1, true);
+                }
+                else if (param instanceof WebGLTexture) {
+                    getMemory().setUint32(data, glTextures.indexOf(param) + 1, true);
+                }
+                else if (param instanceof WebGLBuffer) {
+                    getMemory().setUint32(data, glBuffers.indexOf(param) + 1, true);
                 }
                 else {
                     console.log(`unknown param type: ${getPname(pname)} ${typeof (param)}`);
