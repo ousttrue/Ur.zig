@@ -106,14 +106,16 @@ const Data = struct {
         return error.programError;
     }
 
-    fn getCurrentTexture() ?gl.GLuint {
+    /// int または uint を得る。
+    /// uint 負数は、無効値 0 とする。
+    fn getCurrentID(pname: gl.GLenum) gl.GLuint {
         var val: gl.GLint = undefined;
-        gl.getIntegerv(gl.GL_TEXTURE_BINDING_2D, &val);
+        gl.getIntegerv(pname, &val);
         return if (val > 0)
             @intCast(gl.GLuint, val)
         else
             // ie. -1
-            null;
+            0;
     }
 
     fn createFontsTexture(self: *Self) bool {
@@ -131,7 +133,7 @@ const Data = struct {
 
         // Upload texture to graphics system
         // (Bilinear sampling is required by default. Set 'io.Fonts.Flags |= ImFontAtlasFlags_NoBakedLines' or 'style.AntiAliasedLinesUseTex = false' to allow point/nearest sampling)
-        var last_texture: ?gl.GLuint = getCurrentTexture();
+        const last_texture = getCurrentID(gl.GL_TEXTURE_BINDING_2D);
         gl.genTextures(1, &self.FontTexture);
         gl.bindTexture(gl.GL_TEXTURE_2D, self.FontTexture);
         gl.texParameteri(gl.GL_TEXTURE_2D, gl.GL_TEXTURE_MIN_FILTER, gl.GL_LINEAR);
@@ -147,14 +149,14 @@ const Data = struct {
         io.Fonts.?.TexID = @intToPtr(*anyopaque, self.FontTexture);
 
         // Restore state
-        gl.bindTexture(gl.GL_TEXTURE_2D, if (last_texture) |id| id else 0);
+        gl.bindTexture(gl.GL_TEXTURE_2D, last_texture);
 
         return true;
     }
 
     fn createDeviceObjects(self: *Self) !void {
         // Backup GL state
-        const last_texture = getCurrentTexture();
+        const last_texture = getCurrentID(gl.GL_TEXTURE_BINDING_2D);
 
         var last_array_buffer: gl.GLint = undefined;
         gl.getIntegerv(gl.GL_ARRAY_BUFFER_BINDING, &last_array_buffer);
@@ -233,7 +235,7 @@ const Data = struct {
         _ = self.createFontsTexture();
 
         // Restore modified GL state
-        gl.bindTexture(gl.GL_TEXTURE_2D, @intCast(c_uint, if (last_texture) |id| id else 0));
+        gl.bindTexture(gl.GL_TEXTURE_2D, last_texture);
         gl.bindBuffer(gl.GL_ARRAY_BUFFER, @intCast(c_uint, last_array_buffer));
 
         gl.bindVertexArray(@intCast(c_uint, last_vertex_array));
@@ -254,8 +256,7 @@ const Data = struct {
         gl.activeTexture(gl.GL_TEXTURE0);
         var last_program: gl.GLint = undefined;
         gl.getIntegerv(gl.GL_CURRENT_PROGRAM, &last_program);
-        var last_texture: gl.GLint = undefined;
-        gl.getIntegerv(gl.GL_TEXTURE_BINDING_2D, &last_texture);
+        const last_texture = getCurrentID(gl.GL_TEXTURE_BINDING_2D);
         var last_sampler: gl.GLint = undefined;
         if (self.GlVersion >= 330) {
             gl.getIntegerv(gl.GL_SAMPLER_BINDING, &last_sampler);
@@ -379,7 +380,7 @@ const Data = struct {
 
         // Restore modified GL state
         gl.useProgram(@intCast(u32, last_program));
-        gl.bindTexture(gl.GL_TEXTURE_2D, @intCast(u32, last_texture));
+        gl.bindTexture(gl.GL_TEXTURE_2D, last_texture);
         // if (self.GlVersion >= 330)
         //     gl.bindSampler(0, last_sampler);
         gl.activeTexture(@intCast(u32, last_active_texture));
