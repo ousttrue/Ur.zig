@@ -1,6 +1,6 @@
 const std = @import("std");
 const c = @import("c");
-const engine = @import("engine_extern.zig");
+const engine = @import("./engine_extern.zig");
 
 pub fn main() anyerror!void {
 

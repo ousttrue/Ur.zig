@@ -1,9 +1,9 @@
 [submodule "_external/glfw"]
-	path = _external/glfw
+	path = exe/_external/glfw
 	url = https://github.com/glfw/glfw.git
 [submodule "_external/imgui"]
-	path = _external/imgui
+	path = lib/_external/imgui
 	url = https://github.com/ocornut/imgui.git
 [submodule "_external/stb"]
-	path = _external/stb
+	path = lib/_external/stb
 	url = https://github.com/nothings/stb.git

@@ -24,14 +24,14 @@
             "name": "(gdb) Launch",
             "type": "cppdbg",
             "request": "launch",
-            "program": "${workspaceFolder}/zig-out/bin/glfw",
+            "program": "${workspaceFolder}/zig-out/bin/exe",
             "args": [],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}",
             "environment": [
                 {
                     "name": "LD_LIBRARY_PATH",
-                    "value": "build/src:zig-out/lib"
+                    "value": "build/src:../lib/zig-out/lib"
                 }
             ],
             "externalConsole": false,
