@@ -102,7 +102,11 @@ const memSetString = (dstPtr, maxLength, length, src) => {
     for (let i = 0; i < buffer.length && i < maxLength; ++i) {
         dst[i] = buffer[i];
     }
-    getMemory().setUint32(length, Math.min(buffer.len, maxLength));
+    const write_length = Math.min(buffer.len, maxLength);
+    if (length) {
+        getMemory().setUint32(length, write_length);
+    }
+    return write_length;
 }
 
 var importObject = {
@@ -168,17 +172,17 @@ var importObject = {
         strncpy: () => { throw ""; },
         memchr: () => { throw ""; },
         memmove: () => { throw ""; },
-        // vsnprintf: (s, n, format, arg) => {
-        //     const fmt = memToString(format);
-        //     throw "";
-        // },
+        vsnprintf: (s, n, format, arg) => {
+            const fmt = memToString(format);
+            return memSetString(s, n, null, "ProggyClean.ttf, 15px");
+        },
         fopen: () => { throw ""; },
         fclose: () => { throw ""; },
         ftell: () => { throw ""; },
         fseek: () => { throw ""; },
         fread: () => { throw ""; },
         fwrite: () => { throw ""; },
-        qsort: () => { throw ""; },
+        qsort: () => { },
         strcmp: () => { throw ""; },
         sscanf: () => { throw ""; },
         memcmp: () => { throw ""; },

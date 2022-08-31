@@ -86,7 +86,7 @@ const IMGUI_SOURCES = [_][]const u8{
 };
 const IMGUI_FLAGS = [_][]const u8{
     // "-DIMGUI_DISABLE_DEFAULT_FORMAT_FUNCTIONS",
-    "-DIMGUI_USE_STB_SPRINTF",
+    // "-DIMGUI_USE_STB_SPRINTF",
 };
 const STB_BASE = "_external/stb";
 

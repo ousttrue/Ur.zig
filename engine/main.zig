@@ -13,6 +13,13 @@ fn extern_write(level: c_int, m: []const u8) error{}!usize {
     return m.len;
 }
 
+pub export fn strlen(str: *const u8) usize {
+    var p = @ptrCast([*]const u8, str);
+    var i: usize = 0;
+    while (p[i] != 0) : (i += 1) {}
+    return i;
+}
+
 pub fn log(
     comptime message_level: std.log.Level,
     comptime scope: @Type(.EnumLiteral),
@@ -69,15 +76,17 @@ pub export fn my_malloc(size: u32) *u8 {
     map.put(@ptrCast([*]u8, p), buffer.len) catch {
         @panic("malloc put");
     };
+    logger.debug("my_malloc: {}[{}]", .{ p, size });
     return p;
 }
 
 pub export fn my_free(ptr: [*]u8) void {
     if (map.get(ptr)) |size| {
+        logger.debug("my_free: {}", .{@ptrToInt(ptr)});
         const buffer = ptr[0..size];
         allocator.free(buffer);
     } else {
-        @panic("free");
+        logger.warn("my_free not found: {}", .{@ptrToInt(ptr)});
     }
 }
 
