@@ -3,6 +3,7 @@ const builtin = @import("builtin");
 const imgui = @import("imgui");
 const imgui_opengl_backend = @import("./imgui_opengl_backend.zig");
 const gl = @import("./gl.zig");
+const FrameInput = @import("./frame_input.zig").FrameInput;
 const glsl_version = if (builtin.target.cpu.arch == .wasm32) 300 else 130;
 const logger = std.log.scoped(.Ur);
 
@@ -94,15 +95,31 @@ pub fn deinit(self: *Self) void {
     imgui.DestroyContext();
 }
 
-pub fn render(self: *Self, width: i32, height: i32) void {
-    _ = self;
-    _ = width;
-    _ = height;
+var last_input: FrameInput = .{};
 
+pub fn render(self: *Self, input: *const FrameInput) void {
     {
         // update input
         var io = imgui.GetIO();
-        io.DisplaySize = .{ .x = @intToFloat(f32, width), .y = @intToFloat(f32, height) };
+        io.DisplaySize = .{ .x = @intToFloat(f32, input.width), .y = @intToFloat(f32, input.height) };
+        io.MousePos = .{
+            .x = input.cursor_x,
+            .y = input.cursor_y,
+        };
+        io.DeltaTime = 1.0 / 60.0;
+        if (input.flags.left_down != last_input.flags.left_down) {
+            io.AddMouseButtonEvent(0, input.flags.left_down);
+        }
+        if (input.flags.right_down != last_input.flags.right_down) {
+            io.AddMouseButtonEvent(1, input.flags.right_down);
+        }
+        if (input.flags.middle_down != last_input.flags.middle_down) {
+            io.AddMouseButtonEvent(2, input.flags.middle_down);
+        }
+        if (input.wheel != 0) {
+            io.AddMouseWheelEvent(0, @intToFloat(f32, input.wheel));
+        }
+        last_input = input.*;
 
         imgui_opengl_backend.newFrame() catch |err| {
             logger.err("{}", .{err});
@@ -117,7 +134,7 @@ pub fn render(self: *Self, width: i32, height: i32) void {
         imgui.Render();
     }
 
-    gl.viewport(0, 0, width, height);
+    gl.viewport(0, 0, input.width, input.height);
     gl.clearColor(0.2, 0.5, 0.2, 1);
     gl.clear(gl.GL_COLOR_BUFFER_BIT);
 

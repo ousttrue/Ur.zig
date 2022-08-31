@@ -3,7 +3,7 @@ const builtin = @import("builtin");
 const Ur = @import("./Ur.zig");
 const logger = std.log.scoped(.main);
 pub const gl = @import("./gl.zig");
-
+const FrameInput = @import("./frame_input.zig").FrameInput;
 pub extern fn console_logger(level: c_int, ptr: *const u8, size: c_int) void;
 
 fn extern_write(level: c_int, m: []const u8) error{}!usize {
@@ -107,21 +107,19 @@ pub export fn loadproc(ptr: *const anyopaque) void {
     }
 }
 
-// wasi
-pub export fn main(_: c_int, _: **u8) c_int {
-    return 0;
-}
+// // wasi
+// pub export fn main(_: c_int, _: **u8) c_int {
+//     return 0;
+// }
 
 var ur: ?Ur = null;
-pub export fn render(width: c_int, height: c_int) void {
-    _ = width;
-    _ = height;
+pub export fn render(input: *const FrameInput) void {
     if (ur == null) {
         ur = Ur.init(std.heap.page_allocator) catch {
             @panic("fail to init");
         };
     }
     if (ur) |*r| {
-        r.render(width, height);
+        r.render(input);
     }
 }

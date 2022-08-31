@@ -15,7 +15,7 @@
             "environment": [
                 {
                     "name": "PATH",
-                    "value": "..\\zig-out\\lib;build\\src\\Debug;${env:PATH}"
+                    "value": "..\\lib\\zig-out\\lib;build\\src\\Debug;${env:PATH}"
                 }
             ],
             "console": "integratedTerminal"
@@ -48,14 +48,6 @@
                     "ignoreFailures": true
                 }
             ]
-        },
-        {
-            "name": "generate ImGui wrapper",
-            "type": "python",
-            "request": "launch",
-            "program": "${workspaceFolder}/scripts/code_generator.py",
-            "console": "integratedTerminal",
-            "justMyCode": true
         },
    ]
 }

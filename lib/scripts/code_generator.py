@@ -43,6 +43,7 @@ def generate_imgui():
                structs=[
                    StructConfiguration('ImFontAtlas', methods=True),
                    StructConfiguration('ImDrawList', methods=True),
+                   StructConfiguration('ImGuiIO', methods=True)
         ],
             begin='''
 pub const ImVector = extern struct {

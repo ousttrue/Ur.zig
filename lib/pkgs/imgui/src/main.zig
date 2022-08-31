@@ -916,6 +916,20 @@ test "sizeof ImGuiKeyData" {
     try expect(@sizeOf(ImGuiKeyData) == 16);
 }
 
+extern fn _ZN7ImGuiIO11AddKeyEventEib(self: * ImGuiIO, key: c_int, down: bool) void;
+extern fn _ZN7ImGuiIO17AddKeyAnalogEventEibf(self: * ImGuiIO, key: c_int, down: bool, v: f32) void;
+extern fn _ZN7ImGuiIO16AddMousePosEventEff(self: * ImGuiIO, x: f32, y: f32) void;
+extern fn _ZN7ImGuiIO19AddMouseButtonEventEib(self: * ImGuiIO, button: c_int, down: bool) void;
+extern fn _ZN7ImGuiIO18AddMouseWheelEventEff(self: * ImGuiIO, wh_x: f32, wh_y: f32) void;
+extern fn _ZN7ImGuiIO21AddMouseViewportEventEj(self: * ImGuiIO, _id: c_uint) void;
+extern fn _ZN7ImGuiIO13AddFocusEventEb(self: * ImGuiIO, focused: bool) void;
+extern fn _ZN7ImGuiIO17AddInputCharacterEj(self: * ImGuiIO, c: c_uint) void;
+extern fn _ZN7ImGuiIO22AddInputCharacterUTF16Et(self: * ImGuiIO, c: c_ushort) void;
+extern fn _ZN7ImGuiIO22AddInputCharactersUTF8EPKc(self: * ImGuiIO, str: ?[*:0]const u8) void;
+extern fn _ZN7ImGuiIO21SetKeyEventNativeDataEiiii(self: * ImGuiIO, key: c_int, native_keycode: c_int, native_scancode: c_int, native_legacy_index: c_int) void;
+extern fn _ZN7ImGuiIO21SetAppAcceptingEventsEb(self: * ImGuiIO, accepting_events: bool) void;
+extern fn _ZN7ImGuiIO20ClearInputCharactersEv(self: * ImGuiIO) void;
+extern fn _ZN7ImGuiIO14ClearInputKeysEv(self: * ImGuiIO) void;
 pub const ImGuiIO = extern struct {
     ConfigFlags: c_int,
     BackendFlags: c_int,
@@ -1012,6 +1026,62 @@ pub const ImGuiIO = extern struct {
     BackendUsingLegacyNavInputArray: bool,
     InputQueueSurrogate: c_ushort,
     InputQueueCharacters: ImVector,
+    pub fn AddKeyEvent(self: * ImGuiIO, key: c_int, down: bool) void
+    {
+        return _ZN7ImGuiIO11AddKeyEventEib(self, key, down);
+    }
+    pub fn AddKeyAnalogEvent(self: * ImGuiIO, key: c_int, down: bool, v: f32) void
+    {
+        return _ZN7ImGuiIO17AddKeyAnalogEventEibf(self, key, down, v);
+    }
+    pub fn AddMousePosEvent(self: * ImGuiIO, x: f32, y: f32) void
+    {
+        return _ZN7ImGuiIO16AddMousePosEventEff(self, x, y);
+    }
+    pub fn AddMouseButtonEvent(self: * ImGuiIO, button: c_int, down: bool) void
+    {
+        return _ZN7ImGuiIO19AddMouseButtonEventEib(self, button, down);
+    }
+    pub fn AddMouseWheelEvent(self: * ImGuiIO, wh_x: f32, wh_y: f32) void
+    {
+        return _ZN7ImGuiIO18AddMouseWheelEventEff(self, wh_x, wh_y);
+    }
+    pub fn AddMouseViewportEvent(self: * ImGuiIO, _id: c_uint) void
+    {
+        return _ZN7ImGuiIO21AddMouseViewportEventEj(self, _id);
+    }
+    pub fn AddFocusEvent(self: * ImGuiIO, focused: bool) void
+    {
+        return _ZN7ImGuiIO13AddFocusEventEb(self, focused);
+    }
+    pub fn AddInputCharacter(self: * ImGuiIO, c: c_uint) void
+    {
+        return _ZN7ImGuiIO17AddInputCharacterEj(self, c);
+    }
+    pub fn AddInputCharacterUTF16(self: * ImGuiIO, c: c_ushort) void
+    {
+        return _ZN7ImGuiIO22AddInputCharacterUTF16Et(self, c);
+    }
+    pub fn AddInputCharactersUTF8(self: * ImGuiIO, str: ?[*:0]const u8) void
+    {
+        return _ZN7ImGuiIO22AddInputCharactersUTF8EPKc(self, str);
+    }
+    pub fn SetKeyEventNativeData(self: * ImGuiIO, key: c_int, native_keycode: c_int, native_scancode: c_int, __default: struct{native_legacy_index: c_int= -1}) void
+    {
+        return _ZN7ImGuiIO21SetKeyEventNativeDataEiiii(self, key, native_keycode, native_scancode, __default.native_legacy_index);
+    }
+    pub fn SetAppAcceptingEvents(self: * ImGuiIO, accepting_events: bool) void
+    {
+        return _ZN7ImGuiIO21SetAppAcceptingEventsEb(self, accepting_events);
+    }
+    pub fn ClearInputCharacters(self: * ImGuiIO) void
+    {
+        return _ZN7ImGuiIO20ClearInputCharactersEv(self);
+    }
+    pub fn ClearInputKeys(self: * ImGuiIO) void
+    {
+        return _ZN7ImGuiIO14ClearInputKeysEv(self);
+    }
 };
 
 pub const ImGuiInputTextCallbackData = extern struct {
