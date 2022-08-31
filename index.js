@@ -153,8 +153,18 @@ var importObject = {
     // https://developer.mozilla.org/en-US/docs/Web/API/WebGLRenderingContext
     env: {
         console_logger: (level, ptr, len) => g_logger.logger(level, ptr, len),
-        qsort: (base, num, size, compare) => { },
         //
+        toupper: () => { },
+        __cxa_atexit: () => { },
+        atan2f: () => { },
+        powf: () => { },
+        atof: () => { },
+        pow: () => { },
+        sprintf: () => { },
+        snprintf: () => { },
+        strcpy: () => { },
+        strchr: () => { },
+        qsort: (base, num, size, compare) => { },
         __stack_chk_fail: () => { throw ""; },
         memset: (buf, ch, n) => {
             const buffer = memGet(buf, n);
@@ -194,7 +204,7 @@ var importObject = {
         printf: () => { throw ""; },
         malloc: (size) => instance.exports.my_malloc(size),
         free: (ptr) => instance.exports.my_free(ptr),
-        acosf: () => { throw ""; },
+        acosf: (src) => Math.acos(src),
         //
         getString: (name) => {
             const param = gl.getParameter(name);
@@ -382,12 +392,21 @@ var importObject = {
             const values = new Float32Array(getMemory().buffer, value, 16 * count);
             gl.uniformMatrix4fv(glUniformLocations[location], count, values, transpose);
         },
-        uniform1i: (location, v0) => gl.uniform1i(location, v0),
+        uniform1i: (location, v0) => gl.uniform1i(glUniformLocations[location], v0),
         drawArrays: (mode, first, count) => gl.drawArrays(mode, first, count),
-        drawElements: (mode, count, type, offset) => gl.drawElements(mode, count, type, offset),
+        drawElements: (mode, count, type, offset) => {
+            gl.drawElements(mode, count, type, Number(offset));
+        },
         getIntegerv: (pname, data) => {
             const param = gl.getParameter(pname);
-            if (Number.isInteger(param)) {
+            if (param instanceof Int32Array) {
+                const buffer = new Int32Array(getMemory().buffer, data, param.length);
+                for (let i = 0; i < buffer.length; ++i) {
+                    buffer[i] = param[i];
+                }
+                // console.log(`${pname} => ${buffer}`);
+            }
+            else if (Number.isInteger(param)) {
                 getMemory().setUint32(data, param);
             }
             else {
@@ -432,15 +451,14 @@ var importObject = {
             }
         },
         deleteVertexArrays: (n, array) => {
-            let ptr = array;
-            for (let i = 0; i < n; ++i) {
-                const index = memGetUint32(ptr);
-                gl.deleteVertexArray(index);
+            for (let i = 0; i < n; ++i, array += 4) {
+                const index = getMemory().getUint32(array);
+                gl.deleteVertexArray(glVertexArrays[index - 1]);
             }
         },
         bindVertexArray: (array) => {
             if (array > 0) {
-                gl.bindVertexArray(glVertexArrays[array-1]);
+                gl.bindVertexArray(glVertexArrays[array - 1]);
             }
             else {
                 gl.bindVertexArray(null);
@@ -473,7 +491,7 @@ function step(timestamp) {
     canvas.width = w;
     canvas.height = h;
     instance.exports.render(w, h);
-    // window.requestAnimationFrame(step);
+    window.requestAnimationFrame(step);
 }
 
 window.requestAnimationFrame(step);

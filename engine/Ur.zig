@@ -110,8 +110,8 @@ pub fn render(self: *Self, width: i32, height: i32) void {
         imgui.NewFrame();
 
         // 1. Show the big demo window (Most of the sample code is in imgui.ShowDemoWindow()! You can browse its code to learn more about Dear ImGui!).
-        // if (self.show_demo_window)
-        //     imgui.ShowDemoWindow(.{ .p_open = &self.show_demo_window });
+        if (self.show_demo_window)
+            imgui.ShowDemoWindow(.{ .p_open = &self.show_demo_window });
 
         // Rendering
         imgui.Render();

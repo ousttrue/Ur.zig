@@ -238,8 +238,6 @@ const Data = struct {
     }
 
     fn render(self: *Data, draw_data: *const imgui.ImDrawData) void {
-        logger.info("render", .{});
-
         // Avoid rendering when minimized, scale coordinates for retina displays (screen coordinates != framebuffer coordinates)
         const fb_width = @floatToInt(i32, draw_data.DisplaySize.x * draw_data.FramebufferScale.x);
         const fb_height = @floatToInt(i32, draw_data.DisplaySize.y * draw_data.FramebufferScale.y);
@@ -468,6 +466,7 @@ pub fn init(allocator: std.mem.Allocator, glsl_version: u32) !void {
     if (io.BackendRendererUserData != null) {
         return error.NotInitialized;
     }
+    io.IniFilename = null;
 
     const bd = try Data.new(allocator, glsl_version);
     io.BackendRendererUserData = bd;

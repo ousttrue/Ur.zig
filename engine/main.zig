@@ -20,6 +20,14 @@ pub export fn strlen(str: *const u8) usize {
     return i;
 }
 
+pub export fn memcmp(str1: [*]const u8, str2: [*]const u8, n: usize) c_int {
+    return switch (std.mem.order(u8, str1[0..n], str2[0..n])) {
+        .eq => 0,
+        .lt => 1,
+        .gt => -1,
+    };
+}
+
 pub fn log(
     comptime message_level: std.log.Level,
     comptime scope: @Type(.EnumLiteral),
